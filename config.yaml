@@ -3,7 +3,7 @@ credentials:
     # Первый пользователь (замените на свои данные)
     jsmith:
       email: prockosha97@gmail.com
-      name: Игорь Прокофьев
+      name: prockosha
       password: '$2b$12$ULs2eiNaEF77/w3U103iZuOtRXGTDj7.zWTXmU3AsFl1zyA2gycVS' # <-- ЗАМЕНИМ ЭТОТ ПАРОЛЬ НА ШИФРОВАННЫЙ
     # Второй пользователь (для примера)
     rdoe:
