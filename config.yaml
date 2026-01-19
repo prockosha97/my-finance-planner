@@ -3,14 +3,14 @@ credentials:
     prockosha:
       email: prockosha97@gmail.com
       name: Игорь Прокофьев
-      password: '$2b$12$rNgGchlqhBks3wvShIJDGe4QThTCx.W1X2rxjR0eTPPI7.5kMuBVC'
+      password: $2b$12$rNgGchlqhBks3wvShIJDGe4QThTCx.W1X2rxjR0eTPPI7.5kMuBVC  # Убрал кавычки
     Lesha_Petrov:
       email: a9petrov9@gmail.com
       name: Алексей Петров
-      password: '$2b$12$VExy0b3Mnv4vInIQvk1j7exgYpJm4GKIpCJ7wJxQ7b1PuHiMf6bd.'
-cookies:
-  cookie_name: my_finance_app_cookie
-  key: a_very_secret_key_12345
+      password: $2b$12$VExy0b3Mnv4vInIQvk1j7exgYpJm4GKIpCJ7wJxQ7b1PuHiMf6bd.  # Убрал кавычки
+cookie:
   expiry_days: 30
+  key: a_very_secret_key_12345  # Должно быть случайным (минимум 16 символов)
+  name: my_finance_app_cookie
 preauthorized:
   emails: []
