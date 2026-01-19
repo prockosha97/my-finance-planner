@@ -7,7 +7,7 @@ import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
-# --- НАСТРОЙКИ СТРАНИЦЫ И СТИЛИ ---
+# --- НАСТРОЙКИ СТРАНИЦЫ ---
 st.set_page_config(
     layout="wide",
     page_title="💰 Финансовый Планнер",
@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CSS стили (полностью, ничего не вырезано)
+# --- CSS СТИЛИ (ВАШ КОД) ---
 CSS_STYLE = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 :root {
@@ -135,8 +135,7 @@ textarea::placeholder {
 """
 st.markdown(f"<style>{CSS_STYLE}</style>", unsafe_allow_html=True)
 
-
-# --- АУТЕНТИФИКАЦИЯ ---
+# --- АУТЕНТИФИКАЦИЯ (НОВЫЙ БЛОК) ---
 with open('config.yaml') as file:
     config = yaml.load(file, Loader=SafeLoader)
 
@@ -144,24 +143,21 @@ authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookies']['cookie_name'],
     config['cookies']['key'],
-    config['cookies']['expiry_days'],
-    config['preauthorized']
+    config['cookies']['expiry_days']
 )
 
-# Отображаем форму входа в основной части страницы
-name, authentication_status, username = authenticator.login(fields={'Form name': 'Вход в Финансовый Планнер'})
+authenticator.login()
 
-# --- ЛОГИКА ОТОБРАЖЕНИЯ ---
+# --- ЛОГИКА ОТОБРАЖЕНИЯ (НОВЫЙ БЛОК) ---
 
-if authentication_status:
-    # --- НАЧАЛО ОСНОВНОГО ПРИЛОЖЕНИЯ (ТОЛЬКО ДЛЯ ВОШЕДШИХ ПОЛЬЗОВАТЕЛЕЙ) ---
+if st.session_state["authentication_status"]:
+    # --- НАЧАЛО: ВЕСЬ ВАШ СТАРЫЙ КОД ПОМЕЩЕН СЮДА ---
 
-    # Добавляем приветствие и кнопку выхода на боковую панель
     with st.sidebar:
-        st.title(f"Добро пожаловать, {name}!")
+        st.title(f"Добро пожаловать, {st.session_state['name']}!")
         authenticator.logout('Выйти', key='unique_logout_key')
 
-    # --- НАСТРОЙКИ, SESSION STATE И ФУНКЦИИ ПРИЛОЖЕНИЯ ---
+    # --- НАСТРОЙКИ И ФУНКЦИИ (ВАШ КОД) ---
     try:
         locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
     except locale.Error:
@@ -170,6 +166,7 @@ if authentication_status:
     def format_currency(value):
         return f"{value:,.2f}".replace(',', ' ') if isinstance(value, (int, float)) else value
 
+    # --- SESSION STATE (ВАШ КОД) ---
     def init_session_state():
         defaults = {
             'incomes': [{"name": "Зарплата", "value": 50000.0, "category": "Основной"}],
@@ -183,12 +180,12 @@ if authentication_status:
         for key, value in defaults.items():
             if key not in st.session_state:
                 st.session_state[key] = value
-
     init_session_state()
 
+    # --- ФУНКЦИИ (ВАШ КОД) ---
     def reset_days_view():
         st.session_state.show_all_days = False
-        
+
     def add_item(item_type, category=None):
         if item_type == 'incomes':
             st.session_state.incomes.append({
@@ -198,13 +195,14 @@ if authentication_status:
             st.session_state.expenses.append({
                 "name": "", "value": 0.0, "category": category or st.session_state.expense_categories[0]
             })
+        st.rerun()
 
     def remove_item(item_type, index):
         if item_type == 'incomes':
             st.session_state.incomes.pop(index)
         else:
             st.session_state.expenses.pop(index)
-        # st.rerun() # on_click делает rerun неявным и более безопасным
+        st.rerun()
 
     def add_daily_spend(day_key, desc, amount, category="Еда"):
         if day_key not in st.session_state.daily_spends:
@@ -219,10 +217,11 @@ if authentication_status:
     def remove_daily_spend(day_key, index):
         if day_key in st.session_state.daily_spends and 0 <= index < len(st.session_state.daily_spends[day_key]):
             st.session_state.daily_spends[day_key].pop(index)
+        st.rerun()
 
     def calculate_metrics():
-        total_income = sum(item['value'] for item in st.session_state.incomes)
-        total_expenses = sum(item['value'] for item in st.session_state.expenses)
+        total_income = sum(item.get('value', 0) for item in st.session_state.incomes)
+        total_expenses = sum(item.get('value', 0) for item in st.session_state.expenses)
         balance_after_expenses = total_income - total_expenses
         if balance_after_expenses >= 0:
             savings_percentage = st.session_state.get('savings_percentage', 15)
@@ -238,11 +237,10 @@ if authentication_status:
             }
         return None
 
-    # --- ОСНОВНОЙ ИНТЕРФЕЙС ---
+    # --- ОСНОВНОЙ ИНТЕРФЕЙС (ВАШ КОД) ---
     st.markdown('<div class="main-title">💰 Финансовый Планнер</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">Простое управление бюджетом • Аналитика в реальном времени • Минималистичный дизайн</div>', unsafe_allow_html=True)
-    
-    # --- 1. ПЕРИОД РАСЧЕТА ---
+
     with st.container():
         st.markdown('<div class="section-title">📅 Период расчета</div>', unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1.2, 1.2, 0.8])
@@ -258,12 +256,12 @@ if authentication_status:
             st.stop()
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-    # --- 2. ДОХОДЫ И РАСХОДЫ ---
     col1, col2 = st.columns([1, 1], gap="large")
     with col1:
         st.markdown('<div class="section-title">💸 Доходы</div>', unsafe_allow_html=True)
         total_income = 0
-        for i, income in enumerate(st.session_state.incomes):
+        # Используем копию списка, чтобы избежать ошибок при удалении
+        for i, income in enumerate(list(st.session_state.incomes)):
             cols = st.columns([0.45, 0.25, 0.2, 0.1], gap="small")
             with cols[0]:
                 st.session_state.incomes[i]['name'] = st.text_input("Название дохода", value=income['name'], key=f"in_name_{i}", label_visibility="collapsed", placeholder="Источник дохода")
@@ -277,9 +275,7 @@ if authentication_status:
             total_income += st.session_state.incomes[i].get('value', 0) or 0
         add_col, total_col = st.columns([0.7, 0.3])
         with add_col:
-            if st.button("+ Добавить доход", use_container_width=True, type="secondary"):
-                add_item('incomes')
-                st.rerun()
+            st.button("+ Добавить доход", use_container_width=True, type="secondary", on_click=add_item, args=('incomes',))
         with total_col:
             st.metric("Итого доходов", f"{format_currency(total_income)} ₽")
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
@@ -287,7 +283,8 @@ if authentication_status:
     with col2:
         st.markdown('<div class="section-title">🧾 Расходы</div>', unsafe_allow_html=True)
         total_expenses = 0
-        for i, expense in enumerate(st.session_state.expenses):
+        # Используем копию списка
+        for i, expense in enumerate(list(st.session_state.expenses)):
             cols = st.columns([0.45, 0.25, 0.2, 0.1], gap="small")
             with cols[0]:
                 st.session_state.expenses[i]['name'] = st.text_input("Название расхода", value=expense['name'], key=f"ex_name_{i}", label_visibility="collapsed", placeholder="Статья расхода")
@@ -301,50 +298,47 @@ if authentication_status:
             total_expenses += st.session_state.expenses[i].get('value', 0) or 0
         add_col, total_col = st.columns([0.7, 0.3])
         with add_col:
-            if st.button("+ Добавить расход", use_container_width=True, type="secondary"):
-                add_item('expenses')
-                st.rerun()
+            st.button("+ Добавить расход", use_container_width=True, type="secondary", on_click=add_item, args=('expenses',))
         with total_col:
             st.metric("Итого расходов", f"{format_currency(total_expenses)} ₽")
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-    # --- 3. БЮДЖЕТ И НАКОПЛЕНИЯ ---
     metrics = calculate_metrics()
     if metrics:
         balance = metrics['balance']
         if balance >= 0:
             st.markdown('<div class="section-title">📊 Финансовый обзор</div>', unsafe_allow_html=True)
             metric_cols = st.columns(3)
-            with metric_cols[0]: st.metric("Общий доход", f"{format_currency(metrics['total_income'])} ₽")
-            with metric_cols[1]: st.metric("Общие расходы", f"{format_currency(metrics['total_expenses'])} ₽")
-            with metric_cols[2]: st.metric("Свободные средства", f"{format_currency(balance)} ₽")
-            
+            with metric_cols[0]:
+                st.metric("Общий доход", f"{format_currency(metrics['total_income'])} ₽")
+            with metric_cols[1]:
+                st.metric("Общие расходы", f"{format_currency(metrics['total_expenses'])} ₽")
+            with metric_cols[2]:
+                st.metric("Свободные средства", f"{format_currency(balance)} ₽")
             st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
             st.markdown('<div class="section-title">🏦 Планирование накоплений</div>', unsafe_allow_html=True)
             col_slider, col_display = st.columns([2, 1])
             with col_slider:
                 savings_percentage = st.slider("Процент накоплений от свободных средств", 0, 100, st.session_state.get('savings_percentage', 15), format="%d%%", key="savings_slider", help="Какую часть свободных средств откладывать")
                 st.session_state.savings_percentage = savings_percentage
-            
             savings_amount = balance * (savings_percentage / 100)
             disposable_income = balance - savings_amount
             daily_budget = disposable_income / days_in_period if days_in_period > 0 else 0
-            
             with col_display:
                 st.markdown(f'''<div style="text-align: center; padding: 1.2rem; background: var(--surface-dark); border-radius: var(--radius-lg); border: 1px solid var(--border); min-height: 120px;">
                                 <div style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Отложу на накопления</div>
                                 <div style="font-size: 1.8rem; font-weight: 700; color: var(--primary); margin-bottom: 0.25rem;">{format_currency(savings_amount)} ₽</div>
                                 <div style="font-size: 0.9rem; color: var(--text-tertiary);">{savings_percentage}% от свободных средств</div></div>''', unsafe_allow_html=True)
-            
-            st.markdown(f'''<div class="balance-card"> <div class="balance-label">БЮДЖЕТ НА ПЕРИОД</div> <div class="balance-value">{format_currency(disposable_income)} ₽</div>
-                            <div class="balance-subvalue">Доступно на {days_in_period} дней • {format_currency(daily_budget)} ₽ в день</div> </div>''', unsafe_allow_html=True)
+            st.markdown(f'''<div class="balance-card">
+                <div class="balance-label">БЮДЖЕТ НА ПЕРИОД</div>
+                <div class="balance-value">{format_currency(disposable_income)} ₽</div>
+                <div class="balance-subvalue">Доступно на {days_in_period} дней • {format_currency(daily_budget)} ₽ в день</div></div>''', unsafe_allow_html=True)
         else:
             st.error(f"⚠️ Дефицит бюджета: {format_currency(abs(balance))} ₽")
             st.warning("Рекомендуем увеличить доходы или уменьшить расходы")
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-    # --- 4. КОНТРОЛЬ РАСХОДОВ ---
-    if metrics and metrics['balance'] >= 0:
+    if metrics and metrics.get('balance', -1) >= 0:
         st.markdown('<div class="section-title">📱 Контроль ежедневных расходов</div>', unsafe_allow_html=True)
         with st.expander("💸 Быстрый ввод расхода на сегодня", expanded=False):
             cols = st.columns([0.4, 0.2, 0.25, 0.15])
@@ -355,13 +349,13 @@ if authentication_status:
             with cols[2]:
                 quick_category = st.selectbox("Категория", st.session_state.expense_categories, key="quick_cat")
             with cols[3]:
-                st.write("") 
+                st.write("")
                 if st.button("➕ Добавить", use_container_width=True, type="primary", key="quick_add"):
                     today_key = datetime.date.today().strftime("%Y-%m-%d")
                     if add_daily_spend(today_key, quick_desc, quick_amount, quick_category):
                         st.success("✅ Расход добавлен!")
                         st.rerun()
-        
+
         with st.container():
             rollover = 0.0
             header_cols = st.columns([1.8, 1.5, 1.5, 1.5, 2.5])
@@ -371,8 +365,10 @@ if authentication_status:
             header_cols[3].markdown("**Остаток**")
             header_cols[4].markdown("**Быстрый ввод**")
             st.markdown('<hr style="margin: 0.5rem 0; border-color: var(--border-light);">', unsafe_allow_html=True)
-            
-            display_days = days_in_period if st.session_state.show_all_days else min(days_in_period, 7)
+            if st.session_state.show_all_days:
+                display_days = days_in_period
+            else:
+                display_days = min(days_in_period, 7)
             for i in range(display_days):
                 current_day = start_date + datetime.timedelta(days=i)
                 day_key = current_day.strftime("%Y-%m-%d")
@@ -383,9 +379,12 @@ if authentication_status:
                 rollover = day_balance
                 with st.container():
                     row_cols = st.columns([1.8, 1.5, 1.5, 1.5, 2.5])
-                    with row_cols[0]: st.markdown(f"**{current_day.strftime('%d %B')}**<br><span style='font-size:0.85rem; color: var(--text-secondary);'>{current_day.strftime('%A')}</span>", unsafe_allow_html=True)
-                    with row_cols[1]: st.markdown(f"`{format_currency(day_budget)} ₽`")
-                    with row_cols[2]: st.markdown(f"`{format_currency(total_day_spend)} ₽`" if total_day_spend > 0 else "—", unsafe_allow_html=True)
+                    with row_cols[0]:
+                        st.markdown(f"**{current_day.strftime('%d %B')}**<br><span style='font-size:0.85rem; color: var(--text-secondary);'>{current_day.strftime('%A')}</span>", unsafe_allow_html=True)
+                    with row_cols[1]:
+                        st.markdown(f"`{format_currency(day_budget)} ₽`")
+                    with row_cols[2]:
+                        st.markdown(f"`{format_currency(total_day_spend)} ₽`" if total_day_spend > 0 else "—", unsafe_allow_html=True)
                     with row_cols[3]:
                         color = "var(--success)" if day_balance >= 0 else "var(--danger)"
                         sign = "+" if day_balance >= 0 else ""
@@ -402,11 +401,12 @@ if authentication_status:
                         st.markdown('<div style="margin-top: 0.5rem;">', unsafe_allow_html=True)
                         for j, spend in enumerate(day_spends):
                             b_cols = st.columns([0.9, 0.1])
-                            with b_cols[0]: st.markdown(f'<div class="spend-bubble" title="{spend["desc"]}: {format_currency(spend["amount"])} ₽ ({spend["category"]})"><span>{spend["desc"]}: <b>{format_currency(spend["amount"])} ₽</b></span></div>', unsafe_allow_html=True)
-                            with b_cols[1]: st.button("×", key=f"del_{day_key}_{j}", help="Удалить", on_click=remove_daily_spend, args=(day_key, j), use_container_width=True)
+                            with b_cols[0]:
+                                st.markdown(f'<div class="spend-bubble" title="{spend["desc"]}: {format_currency(spend["amount"])} ₽ ({spend["category"]})"><span>{spend["desc"]}: <b>{format_currency(spend["amount"])} ₽</b></span></div>', unsafe_allow_html=True)
+                            with b_cols[1]:
+                                st.button("×", key=f"del_{day_key}_{j}", help="Удалить", on_click=remove_daily_spend, args=(day_key, j), use_container_width=True)
                         st.markdown('</div>', unsafe_allow_html=True)
-                st.markdown('<hr style="margin: 0.5rem 0; border-color: var(--border-light);">', unsafe_allow_html=True)
-            
+                    st.markdown('<hr style="margin: 0.5rem 0; border-color: var(--border-light);">', unsafe_allow_html=True)
             if not st.session_state.show_all_days and days_in_period > display_days:
                 st.info(f"📅 Показано {display_days} из {days_in_period} дней.")
                 if st.button(f"Показать все {days_in_period} дней", use_container_width=True, type="secondary"):
@@ -414,9 +414,8 @@ if authentication_status:
                     st.rerun()
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-    # --- 5. ЭКСПОРТ ---
-    st.markdown('<div class="section-title">📤 Экспорт отчета</div>', unsafe_allow_html=True)
-    if metrics and metrics['balance'] >= 0:
+    if metrics and metrics.get('balance', -1) >= 0:
+        st.markdown('<div class="section-title">📤 Экспорт отчета</div>', unsafe_allow_html=True)
         col_stats, col_export = st.columns([1, 1])
         with col_stats:
             if st.session_state.daily_spends:
@@ -427,18 +426,15 @@ if authentication_status:
                 st.metric("Средний расход в день", f"{format_currency(avg_daily_spent)} ₽")
             else:
                 st.info("💡 Начните добавлять расходы, чтобы увидеть статистику")
-
         with col_export:
             report_text = f"""ФИНАНСОВЫЙ ОТЧЕТ
 ==================
 Период: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}
 Дней в периоде: {days_in_period}
-
-ДОХОДЫ: {format_currency(total_income)} ₽
-ПОСТОЯННЫЕ РАСХОДЫ: {format_currency(total_expenses)} ₽
-НАКОПЛЕНИЯ: {st.session_state.get('savings_percentage', 15)}% ({format_currency(savings_amount)} ₽)
-БЮДЖЕТ: {format_currency(disposable_income)} ₽ ({format_currency(daily_budget)} ₽/день)
-
+ДОХОДЫ: {format_currency(metrics['total_income'])} ₽
+РАСХОДЫ: {format_currency(metrics['total_expenses'])} ₽
+НАКОПЛЕНИЯ: {metrics['savings_percentage']}% ({format_currency(metrics['savings_amount'])} ₽)
+БЮДЖЕТ: {format_currency(metrics['disposable_income'])} ₽ ({format_currency(metrics['disposable_income'] / days_in_period if days_in_period > 0 else 0)} ₽/день)
 Сгенерировано: {datetime.date.today().strftime('%d.%m.%Y')}
 """
             st.download_button(
@@ -451,21 +447,20 @@ if authentication_status:
             )
     st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-    # --- ФУТЕР ---
     st.markdown("""<div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; padding: 2rem 0;">
-                    <div style="margin-bottom: 0.5rem;">
-                        <span style="margin: 0 0.5rem;">💡 Все данные сохраняются автоматически</span>
-                        <span style="margin: 0 0.5rem;">•</span>
-                        <span style="margin: 0 0.5rem;">📱 Адаптировано для всех устройств</span>
-                        <span style="margin: 0 0.5rem;">•</span>
-                        <span style="margin: 0 0.5rem;">⚡ Быстрая и простая работа</span>
-                    </div>
-                    <div>Финансовый Планнер • Версия 5.0 • 2026</div>
-                </div>""", unsafe_allow_html=True)
+        <div style="margin-bottom: 0.5rem;">
+            <span style="margin: 0 0.5rem;">💡 Все данные сохраняются автоматически</span>
+            <span style="margin: 0 0.5rem;">•</span>
+            <span style="margin: 0 0.5rem;">📱 Адаптировано для всех устройств</span>
+            <span style="margin: 0 0.5rem;">•</span>
+            <span style="margin: 0 0.5rem;">⚡ Быстрая и простая работа</span>
+        </div>
+        <div>Финансовый Планнер • Версия 4.2 • 2026</div>
+    </div>""", unsafe_allow_html=True)
 
+    # --- КОНЕЦ: ВЕСЬ ВАШ СТАРЫЙ КОД ЗАКОНЧИЛСЯ ---
 
-# --- Экраны для случаев, если пользователь не вошел в систему ---
-elif authentication_status is False:
+elif st.session_state["authentication_status"] is False:
     st.error('❌ Неверный логин или пароль')
-elif authentication_status is None:
-    st.warning('🔒 Пожалуйста, введите логин и пароль для доступа')
+elif st.session_state["authentication_status"] is None:
+    st.warning('🔒 Пожалуйста, введите логин и пароль')
