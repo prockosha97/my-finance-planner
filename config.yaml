@@ -1,12 +1,12 @@
 credentials:
   usernames:
-    user1:
-      email: user1@example.com
-      name: Тестовый Пользователь 1
+    prockosha:
+      email: prockosha97@gmail.com
+      name: Игорь Прокофьев
       password: '$2b$12$rNgGchlqhBks3wvShIJDGe4QThTCx.W1X2rxjR0eTPPI7.5kMuBVC'
-    user2:
-      email: user2@example.com
-      name: Тестовый Пользователь 2
+    Lesha_Petrov:
+      email: a9petrov9@gmail.com
+      name: Алексей Петров
       password: '$2b$12$VExy0b3Mnv4vInIQvk1j7exgYpJm4GKIpCJ7wJxQ7b1PuHiMf6bd.'
 cookies:
   cookie_name: my_finance_app_cookie
