@@ -1,0 +1,19 @@
+credentials:
+  usernames:
+    # Первый пользователь (замените на свои данные)
+    jsmith:
+      email: prockosha97@gmail.com
+      name: Игорь Прокофьев
+      password: '$2b$12$ULs2eiNaEF77/w3U103iZuOtRXGTDj7.zWTXmU3AsFl1zyA2gycVS' # <-- ЗАМЕНИМ ЭТОТ ПАРОЛЬ НА ШИФРОВАННЫЙ
+    # Второй пользователь (для примера)
+    rdoe:
+      email: a9petrov9@gmail.com
+      name: Алексей Петров
+      password: '$2b$12$O3.GR2iJo75sHEQDuDx0rOFKeVjzXDNfyYVCR0eKp9HuH6pn35Tn25678' # <-- И ЭТОТ ТОЖЕ
+cookies:
+  cookie_name: some_cookie_name
+  key: some_signature_key # Ключ для шифрования
+  expiry_days: 30
+preauthorized:
+  emails:
+  - melsby@gmail.com
