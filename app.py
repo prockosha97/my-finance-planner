@@ -9,123 +9,7 @@ import os
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
-# --- КЛАСС ДЛЯ УПРАВЛЕНИЯ ДАННЫМИ ПОЛЬЗОВАТЕЛЯ ---
-class UserDataManager:
-    def __init__(self, username):
-        self.username = username
-        self.data_file = f'user_data/{username}.json'
-        
-    def load(self):
-        """Загрузить все данные пользователя"""  # ← этот комментарий тоже должен быть с отступом
-        os.makedirs('user_data', exist_ok=True)
-        
-        if os.path.exists(self.data_file):
-            with open(self.data_file, 'r', encoding='utf-8') as f:
-                loaded_data = json.load(f)
-                
-            # Добавляем отсутствующие поля со значениями по умолчанию
-            default_data = {
-                'start_date': datetime.date.today().isoformat(),
-                'end_date': (datetime.date.today() + datetime.timedelta(days=30)).isoformat(),
-                'incomes': [{"name": "Зарплата", "value": 50000.0, "category": "Основной"}],
-                'expenses': [{"name": "Квартира", "value": 15000.0, "category": "Жилье"}],
-                'daily_spends': {},
-                'savings_percentage': 15,
-                'categories': ["Основной", "Дополнительный", "Инвестиции", "Подарки", "Фриланс"],
-                'expense_categories': ["Жилье", "Еда", "Транспорт", "Развлечения", "Здоровье", "Образование", "Покупки", "Прочее"],
-                'show_all_days': False,
-                'last_updated': datetime.datetime.now().isoformat()
-            }
-            
-            # Объединяем загруженные данные с умолчаниями
-            for key, default_value in default_data.items():
-                if key not in loaded_data:
-                    loaded_data[key] = default_value
-            
-            return loaded_data
-        else:
-            # Новый пользователь - возвращаем данные по умолчанию
-            return {
-                'start_date': datetime.date.today().isoformat(),
-                'end_date': (datetime.date.today() + datetime.timedelta(days=30)).isoformat(),
-                'incomes': [{"name": "Зарплата", "value": 50000.0, "category": "Основной"}],
-                'expenses': [{"name": "Квартира", "value": 15000.0, "category": "Жилье"}],
-                'daily_spends': {},
-                'savings_percentage': 15,
-                'categories': ["Основной", "Дополнительный", "Инвестиции", "Подарки", "Фриланс"],
-                'expense_categories': ["Жилье", "Еда", "Транспорт", "Развлечения", "Здоровье", "Образование", "Покупки", "Прочее"],
-                'show_all_days': False,
-                'last_updated': datetime.datetime.now().isoformat()
-            }
-    
-    def save(self, data):
-        """Сохранить все данные пользователя"""
-        data['last_updated'] = datetime.datetime.now().isoformat()
-        with open(self.data_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        return True
-    
-    def update_field(self, data, field_name, value):
-        """Обновить одно поле и сохранить"""
-        data[field_name] = value
-        return self.save(data)
-# --- НАСТРОЙКА АВТОРИЗАЦИИ ---
-try:
-    with open('config.yaml') as file:
-        config = yaml.load(file, Loader=SafeLoader)
-    
-    authenticator = stauth.Authenticate(
-        config['credentials'],
-        config['cookie']['name'],
-        config['cookie']['key'],
-        config['cookie']['expiry_days'],
-        config.get('preauthorized', {})
-    )
-except Exception as e:
-    st.error(f"Ошибка загрузки конфигурации: {str(e)}")
-    st.stop()
-
-# --- АВТОРИЗАЦИЯ ---
-name, authentication_status, username = authenticator.login('Вход в систему', 'main')
-
-if authentication_status is False:
-    st.error("❌ Неверный логин или пароль")
-    st.stop()
-
-if authentication_status is None:
-    st.warning("🔐 Пожалуйста, введите логин и пароль")
-    st.stop()
-
-# --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ПОЛЬЗОВАТЕЛЯ ---
-user_manager = UserDataManager(username)
-
-# Создаем ключ для текущего пользователя в session_state
-user_key = f"user_{username}"
-
-if user_key not in st.session_state:
-    # Загружаем данные из файла или создаем новые
-    user_data = user_manager.load()
-    st.session_state[user_key] = user_data
-    # Сохраняем текущего пользователя
-    st.session_state['current_user'] = username
-elif st.session_state.get('current_user') != username:
-    # Пользователь сменился - загружаем его данные
-    user_data = user_manager.load()
-    st.session_state[user_key] = user_data
-    st.session_state['current_user'] = username
-
-# Текущие данные пользователя
-user_data = st.session_state[user_key]
-
-# --- ОСНОВНОЕ ПРИЛОЖЕНИЕ ---
-st.set_page_config(
-    layout="wide",
-    page_title="💰 Финансовый Планнер",
-    page_icon="💸",
-    initial_sidebar_state="collapsed"
-)
-
-# --- НАСТРОЙКИ И СТИЛИ ---
+# --- НАСТРОЙКА СТИЛЕЙ ---
 try:
     locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 except locale.Error:
@@ -253,6 +137,258 @@ textarea::placeholder {
 """
 st.markdown(f"<style>{CSS_STYLE}</style>", unsafe_allow_html=True)
 
+# --- КЛАСС ДЛЯ УПРАВЛЕНИЯ ДАННЫМИ ПОЛЬЗОВАТЕЛЯ ---
+class UserDataManager:
+    def __init__(self, username):
+        self.username = username
+        self.data_file = f'user_data/{username}.json'
+        
+    def load(self):
+        """Загрузить все данные пользователя"""
+        os.makedirs('user_data', exist_ok=True)
+        
+        if os.path.exists(self.data_file):
+            with open(self.data_file, 'r', encoding='utf-8') as f:
+                loaded_data = json.load(f)
+                
+            default_data = self.get_default_data()
+            
+            for key, default_value in default_data.items():
+                if key not in loaded_data:
+                    loaded_data[key] = default_value
+            
+            return loaded_data
+        else:
+            return self.get_default_data()
+    
+    def get_default_data(self):
+        """Возвращает данные по умолчанию"""
+        return {
+            'start_date': datetime.date.today().isoformat(),
+            'end_date': (datetime.date.today() + datetime.timedelta(days=30)).isoformat(),
+            'incomes': [{"name": "Зарплата", "value": 50000.0, "category": "Основной"}],
+            'expenses': [{"name": "Квартира", "value": 15000.0, "category": "Жилье"}],
+            'daily_spends': {},
+            'savings_percentage': 15,
+            'categories': ["Основной", "Дополнительный", "Инвестиции", "Подарки", "Фриланс"],
+            'expense_categories': ["Жилье", "Еда", "Транспорт", "Развлечения", "Здоровье", "Образование", "Покупки", "Прочее"],
+            'show_all_days': False,
+            'last_updated': datetime.datetime.now().isoformat()
+        }
+    
+    def save(self, data):
+        """Сохранить все данные пользователя"""
+        data['last_updated'] = datetime.datetime.now().isoformat()
+        with open(self.data_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    
+    def update_field(self, data, field_name, value):
+        """Обновить одно поле и сохранить"""
+        data[field_name] = value
+        return self.save(data)
+    
+    @staticmethod
+    def register_new_user(username, email, name, password):
+        """Зарегистрировать нового пользователя"""
+        # Проверяем, не существует ли уже пользователь
+        config_file = 'config.yaml'
+        if os.path.exists(config_file):
+            with open(config_file, 'r') as f:
+                config = yaml.load(f, Loader=SafeLoader)
+            
+            if username in config['credentials']['usernames']:
+                return False, "Пользователь с таким логином уже существует"
+        
+        # Хешируем пароль
+        hashed_password = stauth.Hasher([password]).generate()[0]
+        
+        # Создаем нового пользователя
+        new_user = {
+            'email': email,
+            'name': name,
+            'password': hashed_password
+        }
+        
+        return True, new_user
+    
+    def save_new_user_to_config(self, new_user_data):
+        """Сохранить нового пользователя в config.yaml"""
+        config_file = 'config.yaml'
+        
+        if os.path.exists(config_file):
+            with open(config_file, 'r') as f:
+                config = yaml.load(f, Loader=SafeLoader)
+        else:
+            config = {
+                'credentials': {'usernames': {}},
+                'cookie': {
+                    'name': 'finance_app_cookie',
+                    'key': 'your_random_key_here_123456789',
+                    'expiry_days': 30
+                },
+                'preauthorized': {'emails': []}
+            }
+        
+        config['credentials']['usernames'][self.username] = new_user_data
+        
+        with open(config_file, 'w') as f:
+            yaml.dump(config, f, default_flow_style=False)
+        
+        return True
+
+# --- ФОРМА РЕГИСТРАЦИИ ---
+def show_registration_form():
+    """Показать форму регистрации"""
+    with st.container():
+        st.markdown('<div class="section-title">📝 Регистрация нового пользователя</div>', unsafe_allow_html=True)
+        
+        with st.form(key="registration_form", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                new_username = st.text_input("Логин*", placeholder="Придумайте логин")
+                new_email = st.text_input("Email*", placeholder="your@email.com")
+            
+            with col2:
+                new_name = st.text_input("Имя и фамилия*", placeholder="Иван Иванов")
+                new_password = st.text_input("Пароль*", type="password", placeholder="Не менее 6 символов")
+                confirm_password = st.text_input("Подтвердите пароль*", type="password")
+            
+            st.markdown("**Обязательные поля отмечены *")
+            
+            col_submit, col_info = st.columns([1, 2])
+            with col_submit:
+                submitted = st.form_submit_button("Зарегистрироваться", use_container_width=True, type="primary")
+            
+            with col_info:
+                st.info("""
+                📝 После регистрации:
+                - Вы сразу сможете войти в систему
+                - Ваши данные будут сохранены отдельно
+                - Вы сможете настроить свой финансовый план
+                """)
+            
+            if submitted:
+                if not all([new_username, new_email, new_name, new_password, confirm_password]):
+                    st.error("❌ Заполните все обязательные поля!")
+                    return False
+                
+                if new_password != confirm_password:
+                    st.error("❌ Пароли не совпадают!")
+                    return False
+                
+                if len(new_password) < 6:
+                    st.error("❌ Пароль должен быть не менее 6 символов!")
+                    return False
+                
+                user_manager = UserDataManager(new_username)
+                success, result = user_manager.register_new_user(
+                    new_username, new_email, new_name, new_password
+                )
+                
+                if success:
+                    user_manager.save_new_user_to_config(result)
+                    user_data = user_manager.load()
+                    user_manager.save(user_data)
+                    
+                    st.success(f"✅ Пользователь {new_username} успешно зарегистрирован!")
+                    st.info("Теперь вы можете войти в систему со своим логином и паролем.")
+                    return True
+                else:
+                    st.error(f"❌ {result}")
+                    return False
+        
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+    return False
+
+# --- ЗАГРУЗКА КОНФИГУРАЦИИ ---
+try:
+    # Сначала пробуем загрузить из secrets (для Streamlit Cloud)
+    import toml
+    config = toml.loads(st.secrets["CONFIG"])
+except:
+    # Если нет secrets, загружаем из файла (для локального запуска)
+    try:
+        with open('config.yaml') as file:
+            config = yaml.load(file, Loader=SafeLoader)
+    except Exception as e:
+        st.error(f"Ошибка загрузки конфигурации: {str(e)}")
+        st.stop()
+
+try:
+    authenticator = stauth.Authenticate(
+        config['credentials'],
+        config['cookie']['name'],
+        config['cookie']['key'],
+        config['cookie']['expiry_days'],
+        config.get('preauthorized', {})
+    )
+except Exception as e:
+    st.error(f"Ошибка создания authenticator: {str(e)}")
+    st.stop()
+
+# --- ОСНОВНОЙ ИНТЕРФЕЙС ---
+st.set_page_config(
+    layout="wide",
+    page_title="💰 Финансовый Планнер",
+    page_icon="💸",
+    initial_sidebar_state="collapsed"
+)
+
+# --- ВКЛАДКИ ВХОДА И РЕГИСТРАЦИИ ---
+st.markdown('<div class="main-title">💰 Финансовый Планнер</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Управление бюджетом • Аналитика • Регистрация новых пользователей</div>', unsafe_allow_html=True)
+
+# Инициализируем переменные
+authentication_status = None
+username = None
+name = None
+
+# Создаем вкладки
+tab1, tab2 = st.tabs(["🔐 Вход в систему", "📝 Регистрация"])
+
+with tab1:
+    name, authentication_status, username = authenticator.login('Вход', 'main')
+    
+    if authentication_status is False:
+        st.error("❌ Неверный логин или пароль")
+    
+    if authentication_status is None:
+        st.info("Введите логин и пароль для входа")
+
+with tab2:
+    registration_success = show_registration_form()
+
+# ПРОВЕРКА АВТОРИЗАЦИИ
+if authentication_status is False:
+    st.stop()
+
+if authentication_status is None and not registration_success:
+    st.warning("🔐 Пожалуйста, войдите или зарегистрируйтесь")
+    st.stop()
+
+# ЕСЛИ ПОЛЬЗОВАТЕЛЬ ЗАРЕГИСТРИРОВАЛСЯ - ПЕРЕЗАГРУЖАЕМ
+if registration_success:
+    st.rerun()
+
+# --- ТЕПЕРЬ ОСНОВНОЕ ПРИЛОЖЕНИЕ (после авторизации) ---
+
+# --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ПОЛЬЗОВАТЕЛЯ ---
+user_manager = UserDataManager(username)
+user_key = f"user_{username}"
+
+if user_key not in st.session_state:
+    user_data = user_manager.load()
+    st.session_state[user_key] = user_data
+    st.session_state['current_user'] = username
+elif st.session_state.get('current_user') != username:
+    user_data = user_manager.load()
+    st.session_state[user_key] = user_data
+    st.session_state['current_user'] = username
+
+user_data = st.session_state[user_key]
+
 # --- ШАПКА С ИНФОРМАЦИЕЙ О ПОЛЬЗОВАТЕЛЕ ---
 user_col1, user_col2, user_col3 = st.columns([2, 1, 1])
 with user_col1:
@@ -278,8 +414,7 @@ with st.container():
             "Начало периода",
             saved_start,
             format="DD.MM.YYYY",
-            key=f"start_date_{username}",
-            on_change=lambda: user_manager.update_field(user_data, 'start_date', start_date.isoformat())
+            key=f"start_date_{username}"
         )
         if start_date != saved_start:
             user_data['start_date'] = start_date.isoformat()
@@ -291,8 +426,7 @@ with st.container():
             "Конец периода",
             saved_end,
             format="DD.MM.YYYY",
-            key=f"end_date_{username}",
-            on_change=lambda: user_manager.update_field(user_data, 'end_date', end_date.isoformat())
+            key=f"end_date_{username}"
         )
         if end_date != saved_end:
             user_data['end_date'] = end_date.isoformat()
@@ -690,6 +824,6 @@ st.markdown(f"""
         <span style="margin: 0 0.5rem;">•</span>
         <span style="margin: 0 0.5rem;">📱 Адаптировано для всех устройств</span>
     </div>
-    <div>Финансовый Планнер • Версия 6.0 • 2024 • Режим: {username}</div>
+    <div>Финансовый Планнер • Версия 7.0 • 2024 • Режим: {username}</div>
 </div>
 """, unsafe_allow_html=True)
