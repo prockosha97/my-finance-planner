@@ -278,15 +278,16 @@ def add_daily_spend(day_key, desc, amount, category="Еда"):
         st.session_state.daily_spends[day_key].append({
             "desc": desc, "amount": amount, "category": category, "time": dt.now().strftime("%H:%M")
         })
-    save_user_data(username)  # ← автосохранение
-        return True
-    return False
+        save_user_data(username)  # ← автосохранение
+        return True  # ← ДОЛЖЕН БЫТЬ ТАКОЙ ЖЕ ОТСТУП КАК У save_user_data ВЫШЕ!
+    return False  # ← правильный отступ
     
 
 def remove_daily_spend(day_key, index):
     if day_key in st.session_state.daily_spends and 0 <= index < len(st.session_state.daily_spends[day_key]):
         st.session_state.daily_spends[day_key].pop(index)
-    save_user_data(username)  # ← автосохранение
+        save_user_data(username)  # ← автосохранение (ДОБАВИТЬ ОТСТУП!)
+    # Нужен return True или хотя бы pass
 
 def calculate_metrics():
     total_income = sum(item['value'] for item in st.session_state.incomes)
