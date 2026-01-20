@@ -370,13 +370,13 @@ with col1:
             st.session_state.incomes[i]['category'] = st.selectbox("Категория", st.session_state.categories, index=st.session_state.categories.index(income['category']) if income['category'] in st.session_state.categories else 0, key=f"in_cat_{i}", label_visibility="collapsed")
         with cols[3]:
             if len(st.session_state.incomes) > 1:
-                if st.button("🗑", key=f"remove_income_{i}", help="Удалить доход", use_container_width=True):
+                if st.button("🗑", key=f"remove_income_{i}", help="Удалить доход", use_container_width=True, key="button_1"):
                     remove_item('incomes', i)
                     st.rerun()
         total_income += st.session_state.incomes[i]['value'] or 0
     add_col, total_col = st.columns([0.7, 0.3])
     with add_col:
-        if st.button("+ Добавить доход", use_container_width=True, type="secondary"):
+        if st.button("+ Добавить доход", use_container_width=True, key="button_2", type="secondary"):
             add_item('incomes')
             st.rerun()
     with total_col:
@@ -396,13 +396,13 @@ with col2:
             st.session_state.expenses[i]['category'] = st.selectbox("Категория", st.session_state.expense_categories, index=st.session_state.expense_categories.index(expense['category']) if expense['category'] in st.session_state.expense_categories else 0, key=f"ex_cat_{i}", label_visibility="collapsed")
         with cols[3]:
             if len(st.session_state.expenses) > 1:
-                if st.button("🗑", key=f"remove_expense_{i}", help="Удалить расход", use_container_width=True):
+                if st.button("🗑", key=f"remove_expense_{i}", help="Удалить расход", use_container_width=True, key="button_3"):
                     remove_item('expenses', i)
                     st.rerun()
         total_expenses += st.session_state.expenses[i]['value'] or 0
     add_col, total_col = st.columns([0.7, 0.3])
     with add_col:
-        if st.button("+ Добавить расход", use_container_width=True, type="secondary"):
+        if st.button("+ Добавить расход", use_container_width=True, key="button_4", type="secondary"):
             add_item('expenses')
             st.rerun()
     with total_col:
@@ -473,7 +473,7 @@ if metrics and metrics['balance'] >= 0:
             quick_category = st.selectbox("Категория", st.session_state.expense_categories, key="quick_cat")
         with cols[3]:
             st.write("") 
-            if st.button("➕ Добавить", use_container_width=True, type="primary", key="quick_add"):
+            if st.button("➕ Добавить", use_container_width=True, key="button_5", type="primary", key="quick_add"):
                 today_key = datetime.date.today().strftime("%Y-%m-%d")
                 if add_daily_spend(today_key, quick_desc, quick_amount, quick_category):
                     st.success("✅ Расход добавлен!")
@@ -539,7 +539,7 @@ if metrics and metrics['balance'] >= 0:
         
         if not st.session_state.show_all_days and days_in_period > display_days:
             st.info(f"📅 Показано {display_days} из {days_in_period} дней.")
-            if st.button(f"Показать все {days_in_period} дней", use_container_width=True, type="secondary"):
+            if st.button(f"Показать все {days_in_period} дней", use_container_width=True, key="button_6", type="secondary"):
                 st.session_state.show_all_days = True
                 st.rerun()
 
@@ -610,9 +610,9 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 # --- КНОПКА СОХРАНЕНИЯ ---
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-if st.button("💾 Сохранить все данные", use_container_width=True):
-   if st.button("💾 Сохранить все данные", use_container_width=True):
-    if save_user_data(username):  # ← добавить username
+if st.button("💾 Сохранить все данные", use_container_width=True, key="button_7", key="save_all_data_button"):
+    if save_user_data(username):
         st.success("✅ Данные сохранены!")
+        st.rerun()  # обновить интерфейс
     else:
         st.error("❌ Ошибка сохранения")
