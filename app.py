@@ -370,7 +370,7 @@ with col1:
             st.session_state.incomes[i]['category'] = st.selectbox("Категория", st.session_state.categories, index=st.session_state.categories.index(income['category']) if income['category'] in st.session_state.categories else 0, key=f"in_cat_{i}", label_visibility="collapsed")
         with cols[3]:
             if len(st.session_state.incomes) > 1:
-                if st.button("🗑", key=f"remove_income_{i}", help="Удалить доход", use_container_width=True, key="button_1"):
+                if st.button("🗑", key=f"remove_income_{i}", help="Удалить доход", use_container_width=True):
                     remove_item('incomes', i)
                     st.rerun()
         total_income += st.session_state.incomes[i]['value'] or 0
