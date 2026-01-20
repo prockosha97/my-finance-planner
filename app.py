@@ -4,15 +4,33 @@ import locale
 from datetime import datetime as dt
 import pandas as pd
 import yaml
-from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
 import json
 import os
+from yaml.loader import SafeLoader
+import streamlit_authenticator as stauth
 
-from user_data import save_user_data
+# --- ФУНКЦИИ СОХРАНЕНИЯ ДАННЫХ (ДОЛЖНЫ БЫТЬ ПЕРВЫМИ) ---
+def save_user_data(username):
+    """Сохранить все данные пользователя в JSON"""
+    if username:
+        user_data = {
+            'incomes': st.session_state.incomes,
+            'expenses': st.session_state.expenses,
+            'daily_spends': st.session_state.daily_spends,
+            'savings_percentage': st.session_state.savings_percentage,
+            'categories': st.session_state.categories,
+            'expense_categories': st.session_state.expense_categories
+        }
+        
+        os.makedirs('user_data', exist_ok=True)
+        filename = f'user_data/{username}.json'
+        
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(user_data, f, ensure_ascii=False, indent=2)
+        return True
+    return False
 
-# --- СОХРАНЕНИЕ ДАННЫХ ---
-def init_user_session(username):  # ← добавить параметр
+def init_user_session(username):
     """Инициализировать или загрузить данные пользователя"""
     user_data_file = f'user_data/{username}.json'
     
@@ -28,29 +46,41 @@ def init_user_session(username):  # ← добавить параметр
     else:
         # Инициализировать новые данные
         init_session_state()
+    
+    return True
 
-# Вызови эту функцию после авторизации
-init_user_session(username)
+def init_session_state():
+    """Инициализация session_state"""
+    defaults = {
+        'incomes': [{"name": "Зарплата", "value": 50000.0, "category": "Основной"}],
+        'expenses': [{"name": "Квартира", "value": 15000.0, "category": "Жилье"}],
+        'daily_spends': {},
+        'savings_percentage': 15,
+        'categories': ["Основной", "Дополнительный", "Инвестиции", "Подарки", "Фриланс"],
+        'expense_categories': ["Жилье", "Еда", "Транспорт", "Развлечения", "Здоровье", "Образование", "Покупки", "Прочее"],
+        'show_all_days': False
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
-# --- НАСТРОЙКА АВТОРИЗАЦИИ (версия 0.2.2) ---
+# --- НАСТРОЙКА АВТОРИЗАЦИИ ---
 try:
     with open('config.yaml') as file:
         config = yaml.load(file, Loader=SafeLoader)
     
-    # Для версии 0.2.2 - 5 параметров (последний preauthorized)
     authenticator = stauth.Authenticate(
         config['credentials'],
         config['cookie']['name'],
         config['cookie']['key'],
         config['cookie']['expiry_days'],
-        config.get('preauthorized', {})  # Оставляем для совместимости
+        config.get('preauthorized', {})
     )
 except Exception as e:
     st.error(f"Ошибка загрузки конфигурации: {str(e)}")
     st.stop()
 
 # --- АВТОРИЗАЦИЯ ---
-# Для 0.2.2 - ДВА параметра (form_name и location)
 name, authentication_status, username = authenticator.login('Вход в систему', 'main')
 
 if authentication_status is False:
@@ -61,12 +91,16 @@ if authentication_status is None:
     st.warning("🔐 Пожалуйста, введите логин и пароль")
     st.stop()
 
+# --- ИНИЦИАЛИЗАЦИЯ ДАННЫХ ПОЛЬЗОВАТЕЛЯ ---
+init_user_session(username)
+
 # --- ОСНОВНОЕ ПРИЛОЖЕНИЕ ---
 st.set_page_config(
     layout="wide",
     page_title="💰 Финансовый Планнер",
     page_icon="💸",
     initial_sidebar_state="collapsed"
+)
 )
 
 # --- НАСТРОЙКИ И СТИЛИ ---
@@ -228,8 +262,7 @@ def add_item(item_type, category=None):
             "name": "", "value": 0.0, "category": category or st.session_state.expense_categories[0]
         })
     
-    # АВТОСОХРАНЕНИЕ
-    save_user_data(username)  # ← добавить эту строку
+    save_user_data(username)  # ← автосохранение
     st.rerun()  # обновить интерфейс
 
 def remove_item(item_type, index):
