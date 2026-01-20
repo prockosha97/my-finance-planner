@@ -8,23 +8,25 @@ from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
 # --- НАСТРОЙКА АВТОРИЗАЦИИ ---
+# Используем более простой подход с try-except
 try:
     with open('config.yaml') as file:
         config = yaml.load(file, Loader=SafeLoader)
-except FileNotFoundError:
-    st.error("Файл config.yaml не найден. Создайте файл с настройками авторизации.")
+    
+    # Создаем authenticator с проверкой ключей
+    authenticator = stauth.Authenticate(
+        config.get('credentials', {}),
+        config.get('cookie', {}).get('name', 'finance_cookie'),
+        config.get('cookie', {}).get('key', 'default_key_12345'),
+        config.get('cookie', {}).get('expiry_days', 30),
+        config.get('preauthorized', {})
+    )
+except Exception as e:
+    st.error(f"Ошибка загрузки конфигурации: {str(e)}")
     st.stop()
 
-authenticator = stauth.Authenticate(
-    config['credentials'],
-    config['cookie']['name'],
-    config['cookie']['key'],
-    config['cookie']['expiry_days'],
-    config.get('preauthorized', {})
-)
-
-# --- СТРАНИЦА АВТОРИЗАЦИИ ---
-name, authentication_status, username = authenticator.login('login', 'main')
+# --- АВТОРИЗАЦИЯ ---
+name, authentication_status, username = authenticator.login('Вход в систему', 'main')
 
 if authentication_status is False:
     st.error("Неверный логин или пароль")
@@ -34,7 +36,7 @@ if authentication_status is None:
     st.warning("Пожалуйста, введите логин и пароль")
     st.stop()
 
-# --- ОСНОВНОЕ ПРИЛОЖЕНИЕ (только для авторизованных пользователей) ---
+# --- ОСНОВНОЕ ПРИЛОЖЕНИЕ (только для авторизованных) ---
 st.set_page_config(
     layout="wide",
     page_title="💰 Финансовый Планнер",
@@ -170,101 +172,63 @@ textarea::placeholder {
 """
 st.markdown(f"<style>{CSS_STYLE}</style>", unsafe_allow_html=True)
 
-# --- SESSION STATE С ПРИВЯЗКОЙ К ПОЛЬЗОВАТЕЛЮ ---
+# --- SESSION STATE ---
 def init_session_state():
-    # Создаем ключи для конкретного пользователя
-    user_key = f"user_{username}"
-    
-    if user_key not in st.session_state:
-        # Инициализируем данные для нового пользователя
-        st.session_state[user_key] = {
-            'incomes': [{"name": "Зарплата", "value": 50000.0, "category": "Основной"}],
-            'expenses': [{"name": "Квартира", "value": 15000.0, "category": "Жилье"}],
-            'daily_spends': {},
-            'savings_percentage': 15,
-            'categories': ["Основной", "Дополнительный", "Инвестиции", "Подарки", "Фриланс"],
-            'expense_categories': ["Жилье", "Еда", "Транспорт", "Развлечения", "Здоровье", "Образование", "Покупки", "Прочее"],
-            'show_all_days': False
-        }
-    
-    # Глобальные настройки для текущей сессии
     defaults = {
-        'current_user': username,
-        'current_user_key': user_key,
+        'incomes': [{"name": "Зарплата", "value": 50000.0, "category": "Основной"}],
+        'expenses': [{"name": "Квартира", "value": 15000.0, "category": "Жилье"}],
+        'daily_spends': {},
+        'savings_percentage': 15,
+        'categories': ["Основной", "Дополнительный", "Инвестиции", "Подарки", "Фриланс"],
+        'expense_categories': ["Жилье", "Еда", "Транспорт", "Развлечения", "Здоровье", "Образование", "Покупки", "Прочее"],
         'show_all_days': False
     }
-    
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
 init_session_state()
 
-# --- ПОЛУЧЕНИЕ ДАННЫХ ПОЛЬЗОВАТЕЛЯ ---
-def get_user_data(key):
-    user_key = st.session_state.get('current_user_key', f"user_{username}")
-    return st.session_state[user_key].get(key)
-
-def set_user_data(key, value):
-    user_key = st.session_state.get('current_user_key', f"user_{username}")
-    st.session_state[user_key][key] = value
-
 # --- ФУНКЦИИ ---
 def reset_days_view():
-    set_user_data('show_all_days', False)
+    st.session_state.show_all_days = False
 
 def add_item(item_type, category=None):
     if item_type == 'incomes':
-        incomes = get_user_data('incomes')
-        incomes.append({
-            "name": "", "value": 0.0, "category": category or get_user_data('categories')[0]
+        st.session_state.incomes.append({
+            "name": "", "value": 0.0, "category": category or st.session_state.categories[0]
         })
-        set_user_data('incomes', incomes)
     else:
-        expenses = get_user_data('expenses')
-        expenses.append({
-            "name": "", "value": 0.0, "category": category or get_user_data('expense_categories')[0]
+        st.session_state.expenses.append({
+            "name": "", "value": 0.0, "category": category or st.session_state.expense_categories[0]
         })
-        set_user_data('expenses', expenses)
 
 def remove_item(item_type, index):
     if item_type == 'incomes':
-        incomes = get_user_data('incomes')
-        incomes.pop(index)
-        set_user_data('incomes', incomes)
+        st.session_state.incomes.pop(index)
     else:
-        expenses = get_user_data('expenses')
-        expenses.pop(index)
-        set_user_data('expenses', expenses)
+        st.session_state.expenses.pop(index)
 
 def add_daily_spend(day_key, desc, amount, category="Еда"):
-    daily_spends = get_user_data('daily_spends')
-    if day_key not in daily_spends:
-        daily_spends[day_key] = []
+    if day_key not in st.session_state.daily_spends:
+        st.session_state.daily_spends[day_key] = []
     if desc and amount > 0:
-        daily_spends[day_key].append({
+        st.session_state.daily_spends[day_key].append({
             "desc": desc, "amount": amount, "category": category, "time": dt.now().strftime("%H:%M")
         })
-        set_user_data('daily_spends', daily_spends)
         return True
     return False
 
 def remove_daily_spend(day_key, index):
-    daily_spends = get_user_data('daily_spends')
-    if day_key in daily_spends and 0 <= index < len(daily_spends[day_key]):
-        daily_spends[day_key].pop(index)
-        set_user_data('daily_spends', daily_spends)
+    if day_key in st.session_state.daily_spends and 0 <= index < len(st.session_state.daily_spends[day_key]):
+        st.session_state.daily_spends[day_key].pop(index)
 
 def calculate_metrics():
-    incomes = get_user_data('incomes')
-    expenses = get_user_data('expenses')
-    savings_percentage = get_user_data('savings_percentage')
-    
-    total_income = sum(item['value'] for item in incomes)
-    total_expenses = sum(item['value'] for item in expenses)
+    total_income = sum(item['value'] for item in st.session_state.incomes)
+    total_expenses = sum(item['value'] for item in st.session_state.expenses)
     balance_after_expenses = total_income - total_expenses
-    
     if balance_after_expenses >= 0:
+        savings_percentage = st.session_state.get('savings_percentage', 15)
         savings_amount = balance_after_expenses * (savings_percentage / 100)
         disposable_income = balance_after_expenses - savings_amount
         return {
@@ -284,8 +248,10 @@ with user_col1:
     st.markdown(f'<div class="subtitle">Простое управление бюджетом • Аналитика в реальном времени • Минималистичный дизайн</div>', unsafe_allow_html=True)
 
 with user_col3:
-    user_info = config['credentials']['usernames'][username]
-    st.info(f"👤 {user_info['name']}")
+    # Получаем информацию о пользователе из config
+    user_info = config['credentials']['usernames'].get(username, {})
+    display_name = user_info.get('name', username)
+    st.info(f"👤 {display_name}")
     authenticator.logout('Выйти', 'main')
 
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
@@ -327,30 +293,24 @@ col1, col2 = st.columns([1, 1], gap="large")
 
 with col1:
     st.markdown('<div class="section-title">💸 Доходы</div>', unsafe_allow_html=True)
-    incomes = get_user_data('incomes')
     total_income = 0
-    for i, income in enumerate(incomes):
+    for i, income in enumerate(st.session_state.incomes):
         cols = st.columns([0.45, 0.25, 0.2, 0.1], gap="small")
         with cols[0]:
-            incomes[i]['name'] = st.text_input("Название дохода", value=income['name'], key=f"in_name_{i}_{username}", label_visibility="collapsed", placeholder="Источник дохода")
+            st.session_state.incomes[i]['name'] = st.text_input("Название дохода", value=income['name'], key=f"in_name_{i}", label_visibility="collapsed", placeholder="Источник дохода")
         with cols[1]:
-            incomes[i]['value'] = st.number_input("Сумма", value=float(income['value']), step=1000.0, format="%.0f", key=f"in_value_{i}_{username}", label_visibility="collapsed", placeholder="0 ₽")
+            st.session_state.incomes[i]['value'] = st.number_input("Сумма", value=float(income['value']), step=1000.0, format="%.0f", key=f"in_value_{i}", label_visibility="collapsed", placeholder="0 ₽")
         with cols[2]:
-            incomes[i]['category'] = st.selectbox("Категория", get_user_data('categories'), 
-                                                  index=get_user_data('categories').index(income['category']) if income['category'] in get_user_data('categories') else 0, 
-                                                  key=f"in_cat_{i}_{username}", label_visibility="collapsed")
+            st.session_state.incomes[i]['category'] = st.selectbox("Категория", st.session_state.categories, index=st.session_state.categories.index(income['category']) if income['category'] in st.session_state.categories else 0, key=f"in_cat_{i}", label_visibility="collapsed")
         with cols[3]:
-            if len(incomes) > 1:
-                if st.button("🗑", key=f"remove_income_{i}_{username}", help="Удалить доход", use_container_width=True):
+            if len(st.session_state.incomes) > 1:
+                if st.button("🗑", key=f"remove_income_{i}", help="Удалить доход", use_container_width=True):
                     remove_item('incomes', i)
                     st.rerun()
-        total_income += incomes[i]['value'] or 0
-    
-    set_user_data('incomes', incomes)
-    
+        total_income += st.session_state.incomes[i]['value'] or 0
     add_col, total_col = st.columns([0.7, 0.3])
     with add_col:
-        if st.button("+ Добавить доход", use_container_width=True, type="secondary", key=f"add_income_{username}"):
+        if st.button("+ Добавить доход", use_container_width=True, type="secondary"):
             add_item('incomes')
             st.rerun()
     with total_col:
@@ -359,30 +319,24 @@ with col1:
 
 with col2:
     st.markdown('<div class="section-title">🧾 Расходы</div>', unsafe_allow_html=True)
-    expenses = get_user_data('expenses')
     total_expenses = 0
-    for i, expense in enumerate(expenses):
+    for i, expense in enumerate(st.session_state.expenses):
         cols = st.columns([0.45, 0.25, 0.2, 0.1], gap="small")
         with cols[0]:
-            expenses[i]['name'] = st.text_input("Название расхода", value=expense['name'], key=f"ex_name_{i}_{username}", label_visibility="collapsed", placeholder="Статья расхода")
+            st.session_state.expenses[i]['name'] = st.text_input("Название расхода", value=expense['name'], key=f"ex_name_{i}", label_visibility="collapsed", placeholder="Статья расхода")
         with cols[1]:
-            expenses[i]['value'] = st.number_input("Сумма", value=float(expense['value']), step=1000.0, format="%.0f", key=f"ex_value_{i}_{username}", label_visibility="collapsed", placeholder="0 ₽")
+            st.session_state.expenses[i]['value'] = st.number_input("Сумма", value=float(expense['value']), step=1000.0, format="%.0f", key=f"ex_value_{i}", label_visibility="collapsed", placeholder="0 ₽")
         with cols[2]:
-            expenses[i]['category'] = st.selectbox("Категория", get_user_data('expense_categories'), 
-                                                   index=get_user_data('expense_categories').index(expense['category']) if expense['category'] in get_user_data('expense_categories') else 0, 
-                                                   key=f"ex_cat_{i}_{username}", label_visibility="collapsed")
+            st.session_state.expenses[i]['category'] = st.selectbox("Категория", st.session_state.expense_categories, index=st.session_state.expense_categories.index(expense['category']) if expense['category'] in st.session_state.expense_categories else 0, key=f"ex_cat_{i}", label_visibility="collapsed")
         with cols[3]:
-            if len(expenses) > 1:
-                if st.button("🗑", key=f"remove_expense_{i}_{username}", help="Удалить расход", use_container_width=True):
+            if len(st.session_state.expenses) > 1:
+                if st.button("🗑", key=f"remove_expense_{i}", help="Удалить расход", use_container_width=True):
                     remove_item('expenses', i)
                     st.rerun()
-        total_expenses += expenses[i]['value'] or 0
-    
-    set_user_data('expenses', expenses)
-    
+        total_expenses += st.session_state.expenses[i]['value'] or 0
     add_col, total_col = st.columns([0.7, 0.3])
     with add_col:
-        if st.button("+ Добавить расход", use_container_width=True, type="secondary", key=f"add_expense_{username}"):
+        if st.button("+ Добавить расход", use_container_width=True, type="secondary"):
             add_item('expenses')
             st.rerun()
     with total_col:
@@ -408,13 +362,12 @@ if metrics:
         st.markdown('<div class="section-title">🏦 Планирование накоплений</div>', unsafe_allow_html=True)
         col_slider, col_display = st.columns([2, 1])
         with col_slider:
-            current_savings = get_user_data('savings_percentage')
             savings_percentage = st.slider(
                 "Процент накоплений от свободных средств", 0, 100,
-                current_savings, format="%d%%", key=f"savings_slider_{username}",
+                st.session_state.get('savings_percentage', 15), format="%d%%", key="savings_slider",
                 help="Какую часть свободных средств откладывать"
             )
-            set_user_data('savings_percentage', savings_percentage)
+            st.session_state.savings_percentage = savings_percentage
         
         savings_amount = balance * (savings_percentage / 100)
         disposable_income = balance - savings_amount
@@ -447,14 +400,14 @@ if metrics and metrics['balance'] >= 0:
     with st.expander("💸 Быстрый ввод расхода на сегодня", expanded=False):
         cols = st.columns([0.4, 0.2, 0.25, 0.15])
         with cols[0]:
-            quick_desc = st.text_input("Описание расхода", placeholder="Обед, кофе...", key=f"quick_desc_{username}")
+            quick_desc = st.text_input("Описание расхода", placeholder="Обед, кофе...", key="quick_desc")
         with cols[1]:
-            quick_amount = st.number_input("Сумма", min_value=0.0, step=100.0, format="%.0f", key=f"quick_amount_{username}")
+            quick_amount = st.number_input("Сумма", min_value=0.0, step=100.0, format="%.0f", key="quick_amount")
         with cols[2]:
-            quick_category = st.selectbox("Категория", get_user_data('expense_categories'), key=f"quick_cat_{username}")
+            quick_category = st.selectbox("Категория", st.session_state.expense_categories, key="quick_cat")
         with cols[3]:
             st.write("") 
-            if st.button("➕ Добавить", use_container_width=True, type="primary", key=f"quick_add_{username}"):
+            if st.button("➕ Добавить", use_container_width=True, type="primary", key="quick_add"):
                 today_key = datetime.date.today().strftime("%Y-%m-%d")
                 if add_daily_spend(today_key, quick_desc, quick_amount, quick_category):
                     st.success("✅ Расход добавлен!")
@@ -471,8 +424,7 @@ if metrics and metrics['balance'] >= 0:
 
         st.markdown('<hr style="margin: 0.5rem 0; border-color: var(--border-light);">', unsafe_allow_html=True)
         
-        show_all_days = get_user_data('show_all_days')
-        if show_all_days:
+        if st.session_state.show_all_days:
             display_days = days_in_period
         else:
             display_days = min(days_in_period, 7)
@@ -481,8 +433,7 @@ if metrics and metrics['balance'] >= 0:
             current_day = start_date + datetime.timedelta(days=i)
             day_key = current_day.strftime("%Y-%m-%d")
             day_budget = daily_budget + rollover
-            daily_spends = get_user_data('daily_spends')
-            day_spends = daily_spends.get(day_key, [])
+            day_spends = st.session_state.daily_spends.get(day_key, [])
             total_day_spend = sum(item['amount'] for item in day_spends)
             day_balance = day_budget - total_day_spend
             rollover = day_balance
@@ -500,11 +451,11 @@ if metrics and metrics['balance'] >= 0:
                     sign = "+" if day_balance >= 0 else ""
                     st.markdown(f"<span style='color:{color}; font-weight:500;'>{sign}{format_currency(day_balance)} ₽</span>", unsafe_allow_html=True)
                 with row_cols[4]:
-                    with st.form(key=f"form_{day_key}_{username}", clear_on_submit=True):
+                    with st.form(key=f"form_{day_key}", clear_on_submit=True):
                         form_cols = st.columns([0.5, 0.3, 0.2])
-                        desc = form_cols[0].text_input("", placeholder="Описание", key=f"desc_{day_key}_{username}", label_visibility="collapsed")
-                        amount = form_cols[1].number_input("", min_value=0.0, step=100.0, format="%.0f", key=f"amount_{day_key}_{username}", label_visibility="collapsed", placeholder="0")
-                        if form_cols[2].form_submit_button("➕", use_container_width=True, key=f"submit_{day_key}_{username}"):
+                        desc = form_cols[0].text_input("", placeholder="Описание", key=f"desc_{day_key}", label_visibility="collapsed")
+                        amount = form_cols[1].number_input("", min_value=0.0, step=100.0, format="%.0f", key=f"amount_{day_key}", label_visibility="collapsed", placeholder="0")
+                        if form_cols[2].form_submit_button("➕", use_container_width=True):
                             if add_daily_spend(day_key, desc, amount, "Прочее"):
                                 st.rerun()
 
@@ -515,15 +466,15 @@ if metrics and metrics['balance'] >= 0:
                         with b_cols[0]:
                              st.markdown(f'<div class="spend-bubble" title="{spend["desc"]}: {format_currency(spend["amount"])} ₽ ({spend["category"]})"><span>{spend["desc"]}: <b>{format_currency(spend["amount"])} ₽</b></span></div>', unsafe_allow_html=True)
                         with b_cols[1]:
-                            st.button("×", key=f"del_{day_key}_{j}_{username}", help="Удалить", on_click=remove_daily_spend, args=(day_key, j), use_container_width=True)
+                            st.button("×", key=f"del_{day_key}_{j}", help="Удалить", on_click=remove_daily_spend, args=(day_key, j), use_container_width=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
                 st.markdown('<hr style="margin: 0.5rem 0; border-color: var(--border-light);">', unsafe_allow_html=True)
         
-        if not show_all_days and days_in_period > display_days:
+        if not st.session_state.show_all_days and days_in_period > display_days:
             st.info(f"📅 Показано {display_days} из {days_in_period} дней.")
-            if st.button(f"Показать все {days_in_period} дней", use_container_width=True, type="secondary", key=f"show_all_{username}"):
-                set_user_data('show_all_days', True)
+            if st.button(f"Показать все {days_in_period} дней", use_container_width=True, type="secondary"):
+                st.session_state.show_all_days = True
                 st.rerun()
 
     st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
@@ -533,10 +484,9 @@ st.markdown('<div class="section-title">📤 Экспорт отчета</div>',
 if metrics and metrics['balance'] >= 0:
     col_stats, col_export = st.columns([1, 1])
     with col_stats:
-        daily_spends = get_user_data('daily_spends')
-        if daily_spends:
-            total_spent = sum(sum(item['amount'] for item in spends) for spends in daily_spends.values())
-            days_with_spends = len(daily_spends)
+        if st.session_state.daily_spends:
+            total_spent = sum(sum(item['amount'] for item in spends) for spends in st.session_state.daily_spends.values())
+            days_with_spends = len(st.session_state.daily_spends)
             avg_daily_spent = total_spent / days_with_spends if days_with_spends > 0 else 0
             st.metric("Всего потрачено за период", f"{format_currency(total_spent)} ₽")
             st.metric("Средний расход в день", f"{format_currency(avg_daily_spent)} ₽")
@@ -544,11 +494,11 @@ if metrics and metrics['balance'] >= 0:
             st.info("💡 Начните добавлять расходы, чтобы увидеть статистику")
 
     with col_export:
-        user_info = config['credentials']['usernames'][username]
+        user_info = config['credentials']['usernames'].get(username, {})
         report_text = f"""ФИНАНСОВЫЙ ОТЧЕТ
 ==================
-Пользователь: {user_info['name']} ({username})
-Email: {user_info['email']}
+Пользователь: {user_info.get('name', username)}
+Email: {user_info.get('email', '')}
 
 Период: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}
 Дней в периоде: {days_in_period}
@@ -560,7 +510,7 @@ Email: {user_info['email']}
 Постоянные расходы: {format_currency(total_expenses)} ₽
 
 НАКОПЛЕНИЯ:
-Процент накоплений: {get_user_data('savings_percentage')}%
+Процент накоплений: {st.session_state.get('savings_percentage', 15)}%
 Сумма накоплений: {format_currency(savings_amount)} ₽
 
 БЮДЖЕТ:
@@ -575,8 +525,7 @@ Email: {user_info['email']}
             file_name=f"финансовый_отчет_{username}_{start_date.strftime('%Y-%m-%d')}_{end_date.strftime('%Y-%m-%d')}.txt",
             mime="text/plain",
             use_container_width=True,
-            type="primary",
-            key=f"download_{username}"
+            type="primary"
         )
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
