@@ -1,16 +1,22 @@
+cookie:
+  expiry_days: 30
+  key: your_random_key_here_123456789
+  name: finance_app_cookie
 credentials:
   usernames:
-    prockosha:
-      email: prockosha97@gmail.com
-      name: Игорь Прокофьев
-      password: $2b$12$rNgGchlqhBks3wvShIJDGe4QThTCx.W1X2rxjR0eTPPI7.5kMuBVC
+    InnaLyapina:
+      email: Lyapinna@gmail.com
+      name: "\u0418\u043D\u043D\u0430 \u041B\u044F\u043F\u0438\u043D\u0430"
+      password: $2b$12$S71qUHENyXDWTmYG7Yqc9uoJSBdQAWuTRT1bWOsObtHy5qJqZUOYO
     Lesha_Petrov:
       email: a9petrov9@gmail.com
-      name: Алексей Петров
+      name: "\u0410\u043B\u0435\u043A\u0441\u0435\u0439 \u041F\u0435\u0442\u0440\u043E\
+        \u0432"
       password: $2b$12$VExy0b3Mnv4vInIQvk1j7exgYpJm4GKIpCJ7wJxQ7b1PuHiMf6bd.
-cookie:
-  name: finance_app_cookie
-  key: your_random_key_here_123456789
-  expiry_days: 30
+    prockosha:
+      email: prockosha97@gmail.com
+      name: "\u0418\u0433\u043E\u0440\u044C \u041F\u0440\u043E\u043A\u043E\u0444\u044C\
+        \u0435\u0432"
+      password: $2b$12$rNgGchlqhBks3wvShIJDGe4QThTCx.W1X2rxjR0eTPPI7.5kMuBVC
 preauthorized:
-  emails: []  # Оставляем пустым, но секция должна быть!
+  emails: []
