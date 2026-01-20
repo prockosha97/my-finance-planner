@@ -7,35 +7,36 @@ import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
-# --- НАСТРОЙКА АВТОРИЗАЦИИ ---
-# Используем более простой подход с try-except
+# --- НАСТРОЙКА АВТОРИЗАЦИИ (версия 0.3.2) ---
 try:
     with open('config.yaml') as file:
         config = yaml.load(file, Loader=SafeLoader)
     
-    # Создаем authenticator с проверкой ключей
+    # ВАЖНО: Для версии 0.3.2 передаем только 4 параметра!
     authenticator = stauth.Authenticate(
-        config.get('credentials', {}),
-        config.get('cookie', {}).get('name', 'finance_cookie'),
-        config.get('cookie', {}).get('key', 'default_key_12345'),
-        config.get('cookie', {}).get('expiry_days', 30),
-        config.get('preauthorized', {})
+        config['credentials'],
+        config['cookie']['name'],
+        config['cookie']['key'],
+        config['cookie']['expiry_days']
+        # Пятый параметр preauthorized УБРАН!
     )
 except Exception as e:
     st.error(f"Ошибка загрузки конфигурации: {str(e)}")
     st.stop()
 
 # --- АВТОРИЗАЦИЯ ---
+# ВАЖНО: Только ОДИН параметр для версии 0.3.2!
 name, authentication_status, username = authenticator.login('Вход в систему')
+
 if authentication_status is False:
-    st.error("Неверный логин или пароль")
+    st.error("❌ Неверный логин или пароль")
     st.stop()
 
 if authentication_status is None:
-    st.warning("Пожалуйста, введите логин и пароль")
+    st.warning("🔐 Пожалуйста, введите логин и пароль")
     st.stop()
 
-# --- ОСНОВНОЕ ПРИЛОЖЕНИЕ (только для авторизованных) ---
+# --- ОСНОВНОЕ ПРИЛОЖЕНИЕ ---
 st.set_page_config(
     layout="wide",
     page_title="💰 Финансовый Планнер",

@@ -10,8 +10,6 @@ credentials:
       password: $2b$12$VExy0b3Mnv4vInIQvk1j7exgYpJm4GKIpCJ7wJxQ7b1PuHiMf6bd.
 cookie:
   name: finance_app_cookie
-  key: your_random_key_here_123456789  # измени на случайную строку 16+ символов
+  key: your_random_key_here_123456789
   expiry_days: 30
-# УБРАТЬ эту секцию полностью ↓
-# preauthorized:
-#   emails: []
+# preauthorized УБРАТЬ!
