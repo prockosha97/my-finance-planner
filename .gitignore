@@ -17,4 +17,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
-*.swp
+*.swpuser_data/ # не коммить в Git!
+user_data/
+*.json

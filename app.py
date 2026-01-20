@@ -6,27 +6,50 @@ import pandas as pd
 import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
+import json
+import os
 
-# --- НАСТРОЙКА АВТОРИЗАЦИИ (версия 0.3.2) ---
+# --- СОХРАНЕНИЕ ДАННЫХ ---
+def init_user_session():
+    """Инициализировать или загрузить данные пользователя"""
+    user_data_file = f'user_data/{username}.json'
+    
+    if os.path.exists(user_data_file):
+        # Загрузить сохраненные данные
+        with open(user_data_file, 'r', encoding='utf-8') as f:
+            saved_data = json.load(f)
+            
+        # Восстановить из сохраненных данных
+        for key in ['incomes', 'expenses', 'daily_spends', 'savings_percentage']:
+            if key in saved_data:
+                st.session_state[key] = saved_data[key]
+    else:
+        # Инициализировать новые данные
+        init_session_state()
+
+# Вызови эту функцию после авторизации
+init_user_session()
+
+# --- НАСТРОЙКА АВТОРИЗАЦИИ (версия 0.2.2) ---
 try:
     with open('config.yaml') as file:
         config = yaml.load(file, Loader=SafeLoader)
     
-    # ВАЖНО: Для версии 0.3.2 передаем только 4 параметра!
+    # Для версии 0.2.2 - 5 параметров (последний preauthorized)
     authenticator = stauth.Authenticate(
         config['credentials'],
         config['cookie']['name'],
         config['cookie']['key'],
-        config['cookie']['expiry_days']
-        # Пятый параметр preauthorized УБРАН!
+        config['cookie']['expiry_days'],
+        config.get('preauthorized', {})  # Оставляем для совместимости
     )
 except Exception as e:
     st.error(f"Ошибка загрузки конфигурации: {str(e)}")
     st.stop()
 
 # --- АВТОРИЗАЦИЯ ---
-# ВАЖНО: Только ОДИН параметр для версии 0.3.2!
-name, authentication_status, username = authenticator.login('Вход в систему')
+# Для 0.2.2 - ДВА параметра (form_name и location)
+name, authentication_status, username = authenticator.login('Вход в систему', 'main')
 
 if authentication_status is False:
     st.error("❌ Неверный логин или пароль")
@@ -202,6 +225,9 @@ def add_item(item_type, category=None):
         st.session_state.expenses.append({
             "name": "", "value": 0.0, "category": category or st.session_state.expense_categories[0]
         })
+    
+    # СОХРАНЯЕМ ПОСЛЕ ИЗМЕНЕНИЯ!
+    save_user_data()
 
 def remove_item(item_type, index):
     if item_type == 'incomes':
@@ -542,3 +568,10 @@ st.markdown(f"""
     <div>Финансовый Планнер • Версия 5.0 • 2024 • Режим: {username}</div>
 </div>
 """, unsafe_allow_html=True)
+# --- КНОПКА СОХРАНЕНИЯ ---
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+if st.button("💾 Сохранить все данные", use_container_width=True):
+    if save_user_data():
+        st.success("✅ Данные сохранены!")
+    else:
+        st.error("❌ Ошибка сохранения")

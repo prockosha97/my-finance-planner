@@ -12,4 +12,5 @@ cookie:
   name: finance_app_cookie
   key: your_random_key_here_123456789
   expiry_days: 30
-# preauthorized УБРАТЬ!
+preauthorized:
+  emails: []  # Оставляем пустым, но секция должна быть!
