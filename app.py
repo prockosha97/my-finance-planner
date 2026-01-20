@@ -26,8 +26,7 @@ except Exception as e:
     st.stop()
 
 # --- АВТОРИЗАЦИЯ ---
-name, authentication_status, username = authenticator.login('Вход в систему', 'main')
-
+name, authentication_status, username = authenticator.login('Вход в систему')
 if authentication_status is False:
     st.error("Неверный логин или пароль")
     st.stop()
