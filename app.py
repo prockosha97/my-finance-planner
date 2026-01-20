@@ -101,7 +101,6 @@ st.set_page_config(
     page_icon="💸",
     initial_sidebar_state="collapsed"
 )
-)
 
 # --- НАСТРОЙКИ И СТИЛИ ---
 try:
