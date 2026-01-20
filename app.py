@@ -9,8 +9,10 @@ import streamlit_authenticator as stauth
 import json
 import os
 
+from user_data import save_user_data
+
 # --- СОХРАНЕНИЕ ДАННЫХ ---
-def init_user_session():
+def init_user_session(username):  # ← добавить параметр
     """Инициализировать или загрузить данные пользователя"""
     user_data_file = f'user_data/{username}.json'
     
@@ -28,7 +30,7 @@ def init_user_session():
         init_session_state()
 
 # Вызови эту функцию после авторизации
-init_user_session()
+init_user_session(username)
 
 # --- НАСТРОЙКА АВТОРИЗАЦИИ (версия 0.2.2) ---
 try:
@@ -226,8 +228,9 @@ def add_item(item_type, category=None):
             "name": "", "value": 0.0, "category": category or st.session_state.expense_categories[0]
         })
     
-    # СОХРАНЯЕМ ПОСЛЕ ИЗМЕНЕНИЯ!
-    save_user_data()
+    # АВТОСОХРАНЕНИЕ
+    save_user_data(username)  # ← добавить эту строку
+    st.rerun()  # обновить интерфейс
 
 def remove_item(item_type, index):
     if item_type == 'incomes':
