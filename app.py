@@ -269,6 +269,7 @@ def remove_item(item_type, index):
         st.session_state.incomes.pop(index)
     else:
         st.session_state.expenses.pop(index)
+    save_user_data(username)  # ← автосохранение
 
 def add_daily_spend(day_key, desc, amount, category="Еда"):
     if day_key not in st.session_state.daily_spends:
@@ -277,12 +278,15 @@ def add_daily_spend(day_key, desc, amount, category="Еда"):
         st.session_state.daily_spends[day_key].append({
             "desc": desc, "amount": amount, "category": category, "time": dt.now().strftime("%H:%M")
         })
+    save_user_data(username)  # ← автосохранение
         return True
     return False
+    
 
 def remove_daily_spend(day_key, index):
     if day_key in st.session_state.daily_spends and 0 <= index < len(st.session_state.daily_spends[day_key]):
         st.session_state.daily_spends[day_key].pop(index)
+    save_user_data(username)  # ← автосохранение
 
 def calculate_metrics():
     total_income = sum(item['value'] for item in st.session_state.incomes)
@@ -606,7 +610,8 @@ st.markdown(f"""
 # --- КНОПКА СОХРАНЕНИЯ ---
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 if st.button("💾 Сохранить все данные", use_container_width=True):
-    if save_user_data():
+   if st.button("💾 Сохранить все данные", use_container_width=True):
+    if save_user_data(username):  # ← добавить username
         st.success("✅ Данные сохранены!")
     else:
         st.error("❌ Ошибка сохранения")
