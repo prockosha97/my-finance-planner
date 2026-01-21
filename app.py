@@ -133,11 +133,29 @@ h3 {
     white-space: nowrap;
 }
 
+/* Исправление полей ввода для мобильных устройств */
 .stTextInput input,
 .stNumberInput input,
 .stSelectbox div,
 .stDateInput input {
     width: 100% !important;
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+.stTextInput input:focus,
+.stNumberInput input:focus,
+.stSelectbox div:focus,
+.stDateInput input:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px var(--primary-soft) !important;
+}
+
+.stSelectbox div[data-baseweb="select"] > div {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
 }
 
 div[data-testid="stTextInput"] small,
@@ -147,40 +165,45 @@ div[data-testid="stSelectbox"] small {
     display: none !important;
 }
 
-.mini-calendar {
+/* Новый компактный календарь */
+.date-picker-container {
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
 }
 
-.mini-calendar .week-row {
-    display: flex;
-    gap: 0.35rem;
-    flex-wrap: nowrap;
+.date-picker-button {
+    flex-shrink: 0;
 }
 
-.mini-calendar .day-button {
-    flex: 1;
-}
-
-.mini-calendar .day-button button {
+.date-picker-button button {
     width: 100%;
-    padding: 0.35rem 0.25rem !important;
-    font-size: 0.85rem !important;
-    border-radius: 10px !important;
-    border: 1px solid var(--border) !important;
     background: var(--surface-light) !important;
+    border: 1px solid var(--border) !important;
     color: var(--text-primary) !important;
-    min-height: 36px !important;
+    font-weight: 500 !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.5rem 1rem !important;
+    white-space: nowrap;
 }
 
-.mini-calendar .day-button.selected button {
-    background: var(--primary-soft) !important;
+.date-picker-button button:hover {
+    background: var(--surface-dark) !important;
     border-color: var(--primary) !important;
-    color: var(--primary-dark) !important;
-    font-weight: 600 !important;
+}
+
+.current-date-display {
+    flex-grow: 1;
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    background: var(--surface-light);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    white-space: nowrap;
 }
 
 .quick-input {
@@ -275,10 +298,43 @@ div[data-testid="stSelectbox"] small {
         flex: 1 1 100% !important;
     }
 
-    .mini-calendar .day-button button {
-        font-size: 0.75rem !important;
-        padding: 0.3rem 0.2rem !important;
-        min-height: 32px !important;
+    /* Исправление полей ввода на мобильных устройствах */
+    .stTextInput input,
+    .stNumberInput input,
+    .stSelectbox div,
+    .stDateInput input {
+        font-size: 16px !important; /* Предотвращает масштабирование в iOS */
+        min-height: 44px !important; /* Минимальная высота для удобного касания */
+        padding: 0.75rem !important;
+        background-color: white !important;
+        color: var(--text-primary) !important;
+    }
+
+    .stSelectbox div[data-baseweb="select"] > div {
+        padding: 0.75rem !important;
+        background-color: white !important;
+        color: var(--text-primary) !important;
+    }
+
+    .date-picker-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .date-picker-button button {
+        width: 100% !important;
+        padding: 0.75rem !important;
+        font-size: 1rem !important;
+        background-color: white !important;
+        color: var(--text-primary) !important;
+    }
+
+    .current-date-display {
+        padding: 0.75rem;
+        text-align: center;
+        background-color: white !important;
+        color: var(--text-primary) !important;
     }
 }
 """
@@ -705,9 +761,12 @@ if "selected_day" not in st.session_state:
     today = datetime.date.today()
     st.session_state.selected_day = today if start_date <= today <= end_date else start_date
 
-
-def select_day(day):
-    st.session_state.selected_day = day
+if "date_index" not in st.session_state:
+    if st.session_state.selected_day in period_dates:
+        st.session_state.date_index = period_dates.index(st.session_state.selected_day)
+    else:
+        st.session_state.date_index = 0
+        st.session_state.selected_day = period_dates[0]
 
 
 def format_russian_date(date_value):
@@ -728,55 +787,48 @@ def format_russian_date(date_value):
     return f"{date_value.day} {months[date_value.month - 1]} {date_value.year}"
 
 
-st.markdown("<div class='mini-calendar'>", unsafe_allow_html=True)
-week = []
-for day in period_dates:
-    week.append(day)
-    if len(week) == 7:
-        st.markdown("<div class='week-row'>", unsafe_allow_html=True)
-        cols = st.columns(7)
-        for idx, col in enumerate(cols):
-            current_day = week[idx]
-            is_selected = current_day == st.session_state.selected_day
-            label = f"{current_day.day}"
-            if current_day == datetime.date.today():
-                label = f"🔴 {label}"
-            if is_selected:
-                label = f"✅ {label}"
-            with col:
-                st.markdown(
-                    f"<div class=\"day-button{' selected' if is_selected else ''}\">",
-                    unsafe_allow_html=True,
-                )
-                st.button(label, key=f"day_{current_day.isoformat()}", on_click=select_day, args=(current_day,))
-                st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        week = []
+def select_prev_day():
+    if st.session_state.date_index > 0:
+        st.session_state.date_index -= 1
+        st.session_state.selected_day = period_dates[st.session_state.date_index]
 
-if week:
-    st.markdown("<div class='week-row'>", unsafe_allow_html=True)
-    cols = st.columns(7)
-    for idx in range(7):
-        if idx < len(week):
-            current_day = week[idx]
-            is_selected = current_day == st.session_state.selected_day
-            label = f"{current_day.day}"
-            if current_day == datetime.date.today():
-                label = f"🔴 {label}"
-            if is_selected:
-                label = f"✅ {label}"
-            with cols[idx]:
-                st.markdown(
-                    f"<div class=\"day-button{' selected' if is_selected else ''}\">",
-                    unsafe_allow_html=True,
-                )
-                st.button(label, key=f"day_{current_day.isoformat()}", on_click=select_day, args=(current_day,))
-                st.markdown("</div>", unsafe_allow_html=True)
-        else:
-            cols[idx].markdown(" ")
-    st.markdown("</div>", unsafe_allow_html=True)
+
+def select_next_day():
+    if st.session_state.date_index < len(period_dates) - 1:
+        st.session_state.date_index += 1
+        st.session_state.selected_day = period_dates[st.session_state.date_index]
+
+
+# Компактный выбор даты
+st.markdown("<div class='date-picker-container'>", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns([1, 3, 1])
+
+with col1:
+    st.markdown('<div class="date-picker-button">', unsafe_allow_html=True)
+    if st.button("◀️", key="prev_day", use_container_width=True, on_click=select_prev_day):
+        pass
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    current_date_str = format_russian_date(st.session_state.selected_day)
+    if st.session_state.selected_day == datetime.date.today():
+        current_date_str = f"🔴 {current_date_str} (сегодня)"
+    
+    st.markdown(f'<div class="current-date-display">{current_date_str}</div>', unsafe_allow_html=True)
+
+with col3:
+    st.markdown('<div class="date-picker-button">', unsafe_allow_html=True)
+    if st.button("▶️", key="next_day", use_container_width=True, on_click=select_next_day):
+        pass
+    st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
+
+# Показываем индикатор прогресса
+progress_text = f"День {st.session_state.date_index + 1} из {len(period_dates)}"
+progress_value = (st.session_state.date_index + 1) / len(period_dates)
+st.progress(progress_value, text=progress_text)
 
 selected_day = st.session_state.selected_day
 selected_key = selected_day.isoformat()
@@ -943,5 +995,3 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-
