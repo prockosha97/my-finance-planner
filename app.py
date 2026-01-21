@@ -67,8 +67,18 @@ CSS_STYLE = """
 
 h1, h2, h3, h4, h5, h6, p, span, div {
     color: var(--text-primary);
-    white-space: normal !important;
-    word-break: break-word;
+    word-break: keep-all;
+    overflow-wrap: normal;
+}
+
+h1 {
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    line-height: 1.2;
+}
+
+h3 {
+    font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+    line-height: 1.25;
 }
 
 .section-card {
@@ -82,7 +92,7 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 }
 
 .section-title {
-    font-size: 1.35rem;
+    font-size: clamp(1.1rem, 2vw, 1.35rem);
     font-weight: 600;
     margin-bottom: 1rem;
     color: var(--text-primary);
@@ -90,8 +100,9 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 
 .subtitle {
     color: var(--text-secondary);
-    font-size: 1rem;
-    line-height: 1.6;
+    font-size: clamp(0.9rem, 1.6vw, 1rem);
+    line-height: 1.45;
+    white-space: nowrap;
 }
 
 .divider {
@@ -111,13 +122,15 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 }
 
 .balance-card .value {
-    font-size: 2rem;
+    font-size: clamp(1.4rem, 3vw, 2rem);
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .balance-card .label,
 .balance-card .subvalue {
     color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
 }
 
 .stTextInput input,
@@ -125,6 +138,13 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 .stSelectbox div,
 .stDateInput input {
     width: 100% !important;
+}
+
+div[data-testid="stTextInput"] small,
+div[data-testid="stNumberInput"] small,
+div[data-testid="stDateInput"] small,
+div[data-testid="stSelectbox"] small {
+    display: none !important;
 }
 
 .mini-calendar {
@@ -216,9 +236,19 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 }
 
 .dashboard-item .value {
-    font-size: 1.1rem;
+    font-size: clamp(0.95rem, 2vw, 1.1rem);
     font-weight: 600;
     margin-top: 0.35rem;
+    white-space: nowrap;
+}
+
+[data-testid="stMetricValue"] {
+    font-size: clamp(1rem, 2.2vw, 1.5rem) !important;
+    white-space: nowrap;
+}
+
+[data-testid="stMetricLabel"] {
+    white-space: nowrap;
 }
 
 @media (max-width: 900px) {
@@ -399,7 +429,6 @@ st.markdown(
     "<div class='subtitle'>Контроль бюджета, ежедневные траты и понятная аналитика.</div>",
     unsafe_allow_html=True,
 )
-st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
 registration_success = False
 
@@ -455,7 +484,6 @@ with user_cols[0]:
     )
 with user_cols[1]:
     authenticator.logout("Выйти", "main")
-st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
 st.markdown("<div class='section-card'>", unsafe_allow_html=True)
 st.markdown("<div class='section-title'>📅 Период расчета</div>", unsafe_allow_html=True)
@@ -682,11 +710,30 @@ def select_day(day):
     st.session_state.selected_day = day
 
 
+def format_russian_date(date_value):
+    months = [
+        "января",
+        "февраля",
+        "марта",
+        "апреля",
+        "мая",
+        "июня",
+        "июля",
+        "августа",
+        "сентября",
+        "октября",
+        "ноября",
+        "декабря",
+    ]
+    return f"{date_value.day} {months[date_value.month - 1]} {date_value.year}"
+
+
 st.markdown("<div class='mini-calendar'>", unsafe_allow_html=True)
 week = []
 for day in period_dates:
     week.append(day)
     if len(week) == 7:
+        st.markdown("<div class='week-row'>", unsafe_allow_html=True)
         cols = st.columns(7)
         for idx, col in enumerate(cols):
             current_day = week[idx]
@@ -703,9 +750,11 @@ for day in period_dates:
                 )
                 st.button(label, key=f"day_{current_day.isoformat()}", on_click=select_day, args=(current_day,))
                 st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
         week = []
 
 if week:
+    st.markdown("<div class='week-row'>", unsafe_allow_html=True)
     cols = st.columns(7)
     for idx in range(7):
         if idx < len(week):
@@ -725,6 +774,7 @@ if week:
                 st.markdown("</div>", unsafe_allow_html=True)
         else:
             cols[idx].markdown(" ")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -732,7 +782,7 @@ selected_day = st.session_state.selected_day
 selected_key = selected_day.isoformat()
 
 st.markdown(
-    f"<div style='margin-top: 1rem; font-weight: 600;'>Выбранный день: {selected_day.strftime('%d %B %Y')}</div>",
+    f"<div style='margin-top: 1rem; font-weight: 600;'>Выбранный день: {format_russian_date(selected_day)}</div>",
     unsafe_allow_html=True,
 )
 
@@ -857,7 +907,7 @@ Email: {user_info.get('email', '')}
 РАСХОДЫ:
 Постоянные расходы: {format_currency(total_expenses)} ₽
 
-НАКОПЕНИЯ:
+НАКОПЛЕНИЯ:
 Процент накоплений: {user_data['savings_percentage']}%
 Сумма накоплений: {format_currency(savings_amount)} ₽
 
