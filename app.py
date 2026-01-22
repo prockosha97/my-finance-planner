@@ -2,7 +2,6 @@ import datetime
 import json
 import locale
 import os
-import pandas as pd
 from datetime import datetime as dt
 from io import BytesIO
 
@@ -71,8 +70,8 @@ CSS_STYLE = """
 
 h1, h2, h3, h4, h5, h6, p, span, div {
     color: var(--text-primary);
-    word-break: keep-all;
-    overflow-wrap: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 h1 {
@@ -106,7 +105,7 @@ h3 {
     color: var(--text-secondary);
     font-size: clamp(0.9rem, 1.6vw, 1rem);
     line-height: 1.45;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 .divider {
@@ -137,139 +136,127 @@ h3 {
     white-space: nowrap;
 }
 
-/* Исправление полей ввода для всех устройств */
-.stTextInput input,
-.stNumberInput input,
-.stSelectbox div,
-.stDateInput input {
-    width: 100% !important;
+/* Улучшенные поля ввода - ФИКС ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input,
+.stDateInput > div > div > input {
     background-color: var(--surface) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--border) !important;
     border-radius: var(--radius-md) !important;
-    font-size: 14px !important;
+    min-height: 44px !important;
 }
 
-.stTextInput input:focus,
-.stNumberInput input:focus,
-.stSelectbox div:focus,
-.stDateInput input:focus {
+/* Исправление для темных тем на мобильных устройствах */
+@media (prefers-color-scheme: dark) {
+    .stTextInput > div > div > input,
+    .stNumberInput > div > div > input,
+    .stDateInput > div > div > input {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border-color: #E2E8F0 !important;
+    }
+}
+
+.stTextInput > div > div > input:focus,
+.stNumberInput > div > div > input:focus,
+.stDateInput > div > div > input:focus {
     border-color: var(--primary) !important;
     box-shadow: 0 0 0 2px var(--primary-soft) !important;
 }
 
-/* Исправление выпадающих списков */
-.stSelectbox div[data-baseweb="select"] > div {
+/* УЛУЧШЕННЫЕ ВЫПАДАЮЩИЕ СПИСКИ - РАСШИРЕННЫЕ ДЛЯ КАТЕГОРИЙ */
+div[data-baseweb="select"] {
+    width: 100% !important;
+    min-width: 180px !important;
+}
+
+div[data-baseweb="select"] > div {
     background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
     color: var(--text-primary) !important;
     min-height: 44px !important;
+    padding: 10px 12px !important;
+}
+
+div[data-baseweb="select"] > div:hover {
+    border-color: var(--primary) !important;
+}
+
+div[data-baseweb="select"] [role="listbox"] {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    max-height: 300px !important;
+    overflow-y: auto !important;
+    min-width: 250px !important;
+    width: auto !important;
+}
+
+div[data-baseweb="select"] [role="option"] {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    padding: 12px 16px !important;
+    min-height: 48px !important;
     display: flex !important;
     align-items: center !important;
 }
 
-.stSelectbox div[data-baseweb="select"] [role="listbox"] {
-    background-color: var(--surface) !important;
-    color: var(--text-primary) !important;
+div[data-baseweb="select"] [role="option"]:hover {
+    background-color: var(--surface-dark) !important;
 }
 
-.stSelectbox div[data-baseweb="select"] [role="option"] {
+div[data-baseweb="select"] [data-testid="stSelectboxLabel"] {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    color: var(--text-primary) !important;
-    background-color: var(--surface) !important;
 }
 
-.stSelectbox div[data-baseweb="select"] [role="option"]:hover {
-    background-color: var(--surface-dark) !important;
+/* Кнопки */
+.stButton > button {
+    border-radius: var(--radius-md) !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
 }
 
-div[data-testid="stTextInput"] small,
-div[data-testid="stNumberInput"] small,
-div[data-testid="stDateInput"] small,
-div[data-testid="stSelectbox"] small {
-    display: none !important;
+/* Компактный выбор даты */
+.date-picker-container {
+    margin-bottom: 1.5rem;
 }
 
-/* Компактный календарь */
-.compact-calendar {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+.date-picker-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    border: 1px solid var(--border);
     margin-bottom: 1rem;
 }
 
-.calendar-day {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    cursor: pointer;
+.date-indicator {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
     font-size: 0.85rem;
     font-weight: 500;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+    margin-left: 8px;
 }
 
-.calendar-day:hover {
-    background-color: var(--surface-dark) !important;
-}
-
-.calendar-day.today {
-    background-color: var(--primary-soft);
-    color: var(--primary-dark);
-    border-color: var(--primary);
-}
-
-.calendar-day.selected {
-    background-color: var(--primary);
-    color: white;
-    font-weight: 600;
-}
-
-.calendar-day.over-budget {
+.date-indicator.over-budget {
     background-color: var(--danger-light);
     color: var(--danger);
 }
 
-.calendar-day.within-budget {
+.date-indicator.within-budget {
     background-color: var(--success-light);
     color: var(--secondary);
 }
 
-.calendar-day.inactive {
-    color: var(--text-tertiary);
-    cursor: default;
-    background-color: var(--surface-light);
-}
-
-.calendar-day.empty {
-    visibility: hidden;
-}
-
-.calendar-header {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-bottom: 8px;
-    text-align: center;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    font-weight: 600;
-}
-
-.calendar-month {
-    text-align: center;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: var(--text-primary);
-    font-size: 1.1rem;
-}
-
 /* Список трат */
 .expense-list {
-    max-height: 400px;
+    max-height: 300px;
     overflow-y: auto;
     margin-bottom: 1rem;
 }
@@ -290,6 +277,12 @@ div[data-testid="stSelectbox"] small {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.expense-item-name {
+    font-weight: 500;
+    color: var(--text-primary);
 }
 
 .expense-item-amount {
@@ -307,41 +300,6 @@ div[data-testid="stSelectbox"] small {
 .expense-item-actions {
     display: flex;
     gap: 0.5rem;
-}
-
-.expense-item button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-}
-
-.expense-item .delete-btn {
-    color: var(--danger);
-}
-
-.expense-item .delete-btn:hover {
-    background-color: var(--danger-light);
-}
-
-.pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.pagination button {
-    min-height: 44px !important;
-    padding: 0.5rem 1rem !important;
 }
 
 /* Статистика дня */
@@ -367,9 +325,12 @@ div[data-testid="stSelectbox"] small {
 }
 
 .stat-value {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .stat-value.positive {
@@ -403,29 +364,53 @@ div[data-testid="stSelectbox"] small {
 }
 
 /* Форма ввода трат */
-.expense-form {
+.expense-form-row {
     display: flex;
     gap: 0.75rem;
     align-items: end;
     flex-wrap: wrap;
+    margin-bottom: 1rem;
 }
 
-.expense-form .add-btn {
-    background-color: var(--secondary) !important;
+/* Улучшенные колонки для доходов/расходов */
+.income-expense-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.income-expense-row > div {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Специальные стили для кнопок */
+.login-button {
+    background-color: var(--primary) !important;
     color: white !important;
     border: none !important;
-    min-height: 44px !important;
 }
 
-.expense-form .remove-btn {
-    background-color: var(--danger) !important;
+.logout-button {
+    background-color: #EF4444 !important;
     color: white !important;
     border: none !important;
-    min-height: 44px !important;
 }
 
-/* Кнопка экспорта */
-.export-btn {
+.add-income-button, .add-expense-button {
+    background-color: white !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+}
+
+.add-income-button:hover, .add-expense-button:hover {
+    background-color: var(--surface-dark) !important;
+    border-color: var(--primary) !important;
+}
+
+.export-button {
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%) !important;
     color: white !important;
     border: none !important;
@@ -436,84 +421,139 @@ div[data-testid="stSelectbox"] small {
     .main .block-container {
         padding: 1rem !important;
     }
-
+    
     .section-card {
-        padding: 1.1rem;
+        padding: 1rem;
     }
-
+    
+    h1 {
+        font-size: 1.8rem;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .subtitle {
+        white-space: normal;
+        word-break: break-word;
+    }
+    
     [data-testid="stHorizontalBlock"] {
         flex-direction: column;
         gap: 0.75rem;
     }
-
+    
     [data-testid="stColumn"] {
         width: 100% !important;
         flex: 1 1 100% !important;
     }
-
-    /* Мобильные поля ввода */
-    .stTextInput input,
-    .stNumberInput input,
-    .stSelectbox div,
-    .stDateInput input {
+    
+    /* Улучшенные выпадающие списки для мобильных */
+    div[data-baseweb="select"] > div {
         font-size: 16px !important;
-        min-height: 44px !important;
-        padding: 0.75rem 1rem !important;
+        min-height: 48px !important;
+        padding: 12px 14px !important;
     }
-
-    .stSelectbox div[data-baseweb="select"] > div {
-        padding: 0.75rem 1rem !important;
-        font-size: 16px !important;
-    }
-
-    .compact-calendar {
-        gap: 3px;
-    }
-
-    .calendar-day {
-        font-size: 0.75rem;
-    }
-
-    .calendar-header {
-        font-size: 0.7rem;
-    }
-
-    .expense-form {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .expense-form .stTextInput,
-    .expense-form .stNumberInput {
+    
+    div[data-baseweb="select"] [role="listbox"] {
+        min-width: 100% !important;
         width: 100% !important;
     }
-
+    
+    div[data-baseweb="select"] [role="option"] {
+        padding: 14px 16px !important;
+        min-height: 52px !important;
+    }
+    
+    /* Мобильные поля ввода */
+    .stTextInput > div > div > input,
+    .stNumberInput > div > div > input,
+    .stDateInput > div > div > input {
+        font-size: 16px !important;
+        min-height: 48px !important;
+    }
+    
+    /* Кнопки на мобилках */
+    .stButton > button {
+        min-height: 44px !important;
+        font-size: 14px !important;
+    }
+    
+    .expense-form-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    
     .day-stats {
         grid-template-columns: 1fr;
         gap: 0.5rem;
     }
-
+    
     .expense-item {
         padding: 0.5rem 0.75rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .expense-item-info {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .expense-item-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    /* Улучшенные строки доходов/расходов на мобильных */
+    .income-expense-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .income-expense-row > div {
+        width: 100% !important;
     }
 }
 
 @media (max-width: 600px) {
-    .compact-calendar {
-        grid-template-columns: repeat(7, 1fr);
-        gap: 2px;
+    h1 {
+        font-size: 1.6rem;
     }
+    
+    h3 {
+        font-size: 1.2rem;
+    }
+    
+    .stat-value {
+        font-size: 1rem;
+    }
+    
+    div[data-baseweb="select"] [role="option"] {
+        font-size: 14px !important;
+    }
+}
 
-    .calendar-day {
-        font-size: 0.7rem;
-        padding: 0.25rem;
-    }
+/* Стили для форм аутентификации */
+.auth-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+}
 
-    .expense-item-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
-    }
+.auth-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+}
+
+.auth-title {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
 }
 """
 
@@ -600,15 +640,30 @@ class UserDataManager:
         return True
 
 
-# Настройка сессии для запоминания входа
-if 'login_username' not in st.session_state:
-    st.session_state.login_username = None
-if 'login_remember' not in st.session_state:
-    st.session_state.login_remember = False
+# Создаем конфиг если его нет
+def ensure_config_exists():
+    config_file = "config.yaml"
+    if not os.path.exists(config_file):
+        config = {
+            "credentials": {"usernames": {}},
+            "cookie": {
+                "name": "finance_app_cookie",
+                "key": "your_random_key_here_123456789",
+                "expiry_days": 30,
+            },
+            "preauthorized": {"emails": []},
+        }
+        with open(config_file, "w") as f:
+            yaml.dump(config, f, default_flow_style=False)
+
+
+ensure_config_exists()
 
 try:
     with open("config.yaml") as file:
         config = yaml.load(file, Loader=SafeLoader)
+    
+    # Создаем аутентификатор
     authenticator = stauth.Authenticate(
         config["credentials"],
         config["cookie"]["name"],
@@ -622,31 +677,38 @@ except Exception as exc:
 
 
 def show_registration_form():
-    st.markdown("<div class='section-title'>📝 Регистрация</div>", unsafe_allow_html=True)
+    st.markdown("<div class='auth-card'>", unsafe_allow_html=True)
+    st.markdown("<h2 class='auth-title'>📝 Регистрация</h2>", unsafe_allow_html=True)
+    
     with st.form(key="registration_form", clear_on_submit=True):
+        new_username = st.text_input("Логин*", placeholder="Придумайте логин")
+        new_email = st.text_input("Email*", placeholder="your@email.com")
+        new_name = st.text_input("Имя и фамилия*", placeholder="Иван Иванов")
+        
         col1, col2 = st.columns(2)
         with col1:
-            new_username = st.text_input("Логин*", placeholder="Придумайте логин")
-            new_email = st.text_input("Email*", placeholder="your@email.com")
-        with col2:
-            new_name = st.text_input("Имя и фамилия*", placeholder="Иван Иванов")
             new_password = st.text_input("Пароль*", type="password")
+        with col2:
             confirm_password = st.text_input("Подтвердите пароль*", type="password")
 
         submitted = st.form_submit_button("Зарегистрироваться", use_container_width=True, type="primary")
         if not submitted:
+            st.markdown("</div>", unsafe_allow_html=True)
             return False
 
         if not all([new_username, new_email, new_name, new_password, confirm_password]):
             st.error("❌ Заполните все обязательные поля")
+            st.markdown("</div>", unsafe_allow_html=True)
             return False
 
         if new_password != confirm_password:
             st.error("❌ Пароли не совпадают")
+            st.markdown("</div>", unsafe_allow_html=True)
             return False
 
         if len(new_password) < 6:
             st.error("❌ Пароль должен быть не менее 6 символов")
+            st.markdown("</div>", unsafe_allow_html=True)
             return False
 
         user_manager = UserDataManager(new_username)
@@ -658,277 +720,218 @@ def show_registration_form():
             user_manager.save(user_data)
             st.success(f"✅ Пользователь {new_username} успешно зарегистрирован")
             st.info("Теперь вы можете войти в систему")
+            st.markdown("</div>", unsafe_allow_html=True)
             return True
 
         st.error(f"❌ {result}")
+        st.markdown("</div>", unsafe_allow_html=True)
         return False
 
 
-def create_excel_template(user_data, username, user_info, start_date, end_date, 
-                          total_income, total_expenses, disposable_income, daily_budget, days_in_period):
-    """Создаёт Excel файл с шаблоном для заполнения"""
+def create_simple_export(user_data, username, user_info, start_date, end_date, 
+                         total_income, total_expenses, disposable_income, daily_budget, days_in_period):
+    """Создаёт простой текстовый файл с шаблоном"""
     
-    # Создаём Excel writer
-    output = BytesIO()
+    report_text = f"""ФИНАНСОВЫЙ ШАБЛОН
+========================
+Пользователь: {user_info.get('name', username)}
+Email: {user_info.get('email', '')}
+
+Период: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}
+Дней в периоде: {days_in_period}
+
+ОСНОВНЫЕ ПОКАЗАТЕЛИ:
+-------------------
+Общий доход: {format_currency(total_income)} ₽
+Постоянные расходы: {format_currency(total_expenses)} ₽
+Свободные средства: {format_currency(total_income - total_expenses)} ₽
+Бюджет на период: {format_currency(disposable_income)} ₽
+Бюджет на день: {format_currency(daily_budget)} ₽
+
+ПОСТОЯННЫЕ ДОХОДЫ:
+-----------------"""
     
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        # Лист 1: Дашборд
-        dashboard_data = {
-            'Параметр': [
-                'Пользователь',
-                'Email',
-                'Период',
-                'Дней в периоде',
-                'Общий доход',
-                'Постоянные расходы',
-                'Свободные средства',
-                'Бюджет на период',
-                'Бюджет на день',
-                'Дата создания'
-            ],
-            'Значение': [
-                user_info.get('name', username),
-                user_info.get('email', ''),
-                f"{start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}",
-                days_in_period,
-                f"{format_currency(total_income)} ₽",
-                f"{format_currency(total_expenses)} ₽",
-                f"{format_currency(total_income - total_expenses)} ₽",
-                f"{format_currency(disposable_income)} ₽",
-                f"{format_currency(daily_budget)} ₽",
-                datetime.date.today().strftime('%d.%m.%Y')
-            ]
-        }
-        df_dashboard = pd.DataFrame(dashboard_data)
-        df_dashboard.to_excel(writer, sheet_name='Дашборд', index=False)
-        
-        # Настройка ширины колонок для дашборда
-        worksheet = writer.sheets['Дашборд']
-        worksheet.column_dimensions['A'].width = 25
-        worksheet.column_dimensions['B'].width = 30
-        
-        # Лист 2: Постоянные доходы/расходы
-        incomes_df = pd.DataFrame(user_data['incomes'])
-        expenses_df = pd.DataFrame(user_data['expenses'])
-        
-        incomes_df.to_excel(writer, sheet_name='Постоянные', startrow=0, index=False)
-        expenses_df.to_excel(writer, sheet_name='Постоянные', startrow=len(incomes_df) + 3, index=False)
-        
-        worksheet = writer.sheets['Постоянные']
-        worksheet.cell(row=1, column=1, value='ДОХОДЫ:')
-        worksheet.cell(row=len(incomes_df) + 3, column=1, value='РАСХОДЫ:')
-        
-        # Лист 3: Ежедневные траты
-        days_data = []
-        for i in range(days_in_period):
-            current_date = start_date + datetime.timedelta(days=i)
-            days_data.append({
-                'Дата': current_date.strftime('%d.%m.%Y'),
-                'Бюджет дня': daily_budget,
-                'Трата 1': '',
-                'Трата 2': '',
-                'Трата 3': '',
-                'Трата 4': '',
-                'Трата 5': '',
-                'Итого трат': '',
-                'Остаток': ''
-            })
-        
-        df_days = pd.DataFrame(days_data)
-        df_days.to_excel(writer, sheet_name='Ежедневные траты', index=False)
-        
-        # Добавляем формулы для Excel
-        worksheet = writer.sheets['Ежедневные траты']
-        
-        # Формулы для подсчёта итогов и остатков
-        for i in range(2, len(days_data) + 2):
-            # Формула для суммы трат (столбцы C-G)
-            sum_formula = f'=SUM(C{i}:G{i})'
-            worksheet.cell(row=i, column=8, value=sum_formula)
-            
-            # Формула для остатка (бюджет - траты)
-            balance_formula = f'=B{i}-H{i}'
-            worksheet.cell(row=i, column=9, value=balance_formula)
-        
-        # Настройка ширины колонок
-        for col in worksheet.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 30)
-            worksheet.column_dimensions[column].width = adjusted_width
-        
-        # Лист 4: Подсказки
-        tips_data = {
-            'Совет': [
-                '1. Заполняйте траты ежедневно',
-                '2. Первые 5 строк - для самых крупных трат дня',
-                '3. Остаток переносится на следующий день',
-                '4. Красный цвет - перерасход бюджета',
-                '5. Зелёный цвет - экономия'
-            ],
-            'Как использовать': [
-                'Не откладывайте на потом',
-                'Мелкие траты группируйте',
-                'Автоматически рассчитывается в приложении',
-                'Старайтесь не допускать',
-                'Можно отложить на будущее'
-            ]
-        }
-        df_tips = pd.DataFrame(tips_data)
-        df_tips.to_excel(writer, sheet_name='Подсказки', index=False)
+    for income in user_data["incomes"]:
+        report_text += f"\n• {income['name']}: {format_currency(income['value'])} ₽ ({income['category']})"
     
-    return output.getvalue()
+    report_text += "\n\nПОСТОЯННЫЕ РАСХОДЫ:\n-----------------"
+    
+    for expense in user_data["expenses"]:
+        report_text += f"\n• {expense['name']}: {format_currency(expense['value'])} ₽ ({expense['category']})"
+    
+    report_text += "\n\nЕЖЕДНЕВНЫЕ ТРАТЫ (ШАБЛОН):\n-------------------------"
+    report_text += "\nДата | Трата 1 | Трата 2 | Трата 3 | Трата 4 | Трата 5 | Итого | Остаток"
+    report_text += "\n" + "-" * 80
+    
+    for i in range(days_in_period):
+        current_date = start_date + datetime.timedelta(days=i)
+        report_text += f"\n{current_date.strftime('%d.%m.%Y')} | | | | | | |"
+    
+    report_text += f"\n\nПОДСКАЗКИ:\n----------"
+    report_text += "\n1. Заполняйте траты ежедневно"
+    report_text += "\n2. Первые 5 колонок - для самых крупных трат дня"
+    report_text += "\n3. Итого = сумма трат 1-5"
+    report_text += "\n4. Остаток = Бюджет дня - Итого"
+    report_text += "\n5. Красный цвет в приложении - перерасход бюджета"
+    report_text += "\n6. Зелёный цвет - экономия"
+    
+    report_text += f"\n\nСгенерировано: {datetime.date.today().strftime('%d.%m.%Y %H:%M')}"
+    
+    return report_text
 
 
-def render_compact_calendar(start_date, end_date, selected_day, daily_budgets, user_data):
-    """Рендерит компактный календарь"""
+def get_day_status(day_key, user_data, daily_budget, start_date, end_date):
+    """Определяет статус дня (перерасход/экономия)"""
+    if day_key not in user_data["daily_spends"]:
+        return None
     
-    # Определяем первый день месяца и последний
-    first_day = start_date.replace(day=1)
-    last_day = end_date
+    # Рассчитываем накопленный бюджет с переносом
+    rollover = 0.0
+    days_in_period = (end_date - start_date).days + 1
     
-    # Создаём сетку календаря
-    st.markdown('<div class="calendar-month">' + 
-                selected_day.strftime('%B %Y').title() + '</div>', unsafe_allow_html=True)
-    
-    # Заголовки дней недели
-    weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-    st.markdown('<div class="calendar-header">' + 
-                ''.join([f'<div>{day}</div>' for day in weekdays]) + 
-                '</div>', unsafe_allow_html=True)
-    
-    # Дни календаря
-    days_grid = []
-    
-    # Пустые дни до первого числа
-    first_weekday = first_day.weekday()  # 0 = понедельник
-    for _ in range(first_weekday):
-        days_grid.append({'day': '', 'date': None, 'class': 'empty'})
-    
-    # Все дни месяца
-    current = first_day
-    while current <= last_day:
-        day_key = current.isoformat()
-        day_spent = sum(item["amount"] for item in user_data["daily_spends"].get(day_key, []))
+    for i in range(days_in_period):
+        current_date = start_date + datetime.timedelta(days=i)
+        current_key = current_date.isoformat()
+        day_spent = sum(item["amount"] for item in user_data["daily_spends"].get(current_key, []))
+        day_budget = daily_budget + rollover
         
-        # Определяем класс для дня
-        day_class = "calendar-day"
-        if current == datetime.date.today():
-            day_class += " today"
-        elif current == selected_day:
-            day_class += " selected"
+        if current_key == day_key:
+            if day_spent > day_budget and day_spent > 0:
+                return "over"
+            elif day_spent <= day_budget and day_spent > 0:
+                return "within"
+            return None
         
-        # Проверяем бюджет для дня (упрощённо)
-        daily_budget = daily_budgets.get(day_key, 0)
-        if day_spent > daily_budget and day_spent > 0:
-            day_class += " over-budget"
-        elif day_spent <= daily_budget and day_spent > 0:
-            day_class += " within-budget"
+        rollover = max(day_budget - day_spent, 0)
+    
+    return None
+
+
+def render_date_picker(start_date, end_date, selected_day, user_data, daily_budget):
+    """Рендерит компактный выбор даты с индикаторами"""
+    
+    st.markdown("<div class='date-picker-card'>", unsafe_allow_html=True)
+    st.markdown("### Выберите день для управления расходами")
+    
+    # Используем st.date_input для выбора даты
+    new_date = st.date_input(
+        "Дата",
+        value=selected_day,
+        min_value=start_date,
+        max_value=end_date,
+        format="DD.MM.YYYY",
+        label_visibility="collapsed"
+    )
+    
+    # Проверяем статус дня
+    day_key = new_date.isoformat()
+    day_status = get_day_status(day_key, user_data, daily_budget, start_date, end_date)
+    
+    # Индикатор статуса дня
+    if day_status:
+        status_text = "Перерасход" if day_status == "over" else "В пределах бюджета"
+        status_class = "over-budget" if day_status == "over" else "within-budget"
+        st.markdown(
+            f"<span class='date-indicator {status_class}'>{status_text}</span>",
+            unsafe_allow_html=True
+        )
+    
+    # Информация о дне
+    spends_today = user_data["daily_spends"].get(day_key, [])
+    total_spent = sum(item["amount"] for item in spends_today)
+    
+    st.caption(f"📊 За этот день: {len(spends_today)} трат на {format_currency(total_spent)} ₽")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    return new_date
+
+
+# ================== НАЧАЛО ОСНОВНОГО ПРИЛОЖЕНИЯ ==================
+
+# Инициализация session state
+if 'registration_success' not in st.session_state:
+    st.session_state.registration_success = False
+if 'selected_day' not in st.session_state:
+    st.session_state.selected_day = datetime.date.today()
+if 'expense_page' not in st.session_state:
+    st.session_state.expense_page = 0
+
+# Проверяем аутентификацию ДО отображения контента
+if st.session_state.get("authentication_status") is None:
+    # Показываем только форму входа/регистрации
+    st.markdown("<h1 style='text-align: center; margin-top: 2rem;'>💰 Финансовый Планнер</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: var(--text-secondary); margin-bottom: 2rem;'>Контроль бюджета, ежедневные траты и понятная аналитика.</p>", unsafe_allow_html=True)
+    
+    # Создаем две колонки для входа и регистрации
+    auth_col1, auth_col2 = st.columns(2)
+    
+    with auth_col1:
+        st.markdown("<div class='auth-card'>", unsafe_allow_html=True)
+        st.markdown("<h2 class='auth-title'>🔐 Вход</h2>", unsafe_allow_html=True)
         
-        days_grid.append({
-            'day': current.day,
-            'date': current,
-            'class': day_class
-        })
-        
-        current += datetime.timedelta(days=1)
-    
-    # Заполняем оставшиеся ячейки
-    while len(days_grid) % 7 != 0:
-        days_grid.append({'day': '', 'date': None, 'class': 'empty'})
-    
-    # Рендерим календарь
-    html_days = []
-    for i, day_info in enumerate(days_grid):
-        if day_info['date']:
-            html_days.append(f'<div class="{day_info["class"]}" onclick="selectDay(\'{day_info["date"].isoformat()}\')">{day_info["day"]}</div>')
-        else:
-            html_days.append(f'<div class="{day_info["class"]}"></div>')
-    
-    st.markdown(f'<div class="compact-calendar">{"".join(html_days)}</div>', unsafe_allow_html=True)
-    
-    # JavaScript для выбора дня
-    st.markdown("""
-    <script>
-    function selectDay(dateStr) {
-        const url = new URL(window.location);
-        url.searchParams.set('selected_day', dateStr);
-        window.history.pushState({}, '', url);
-        window.location.reload();
-    }
-    </script>
-    """, unsafe_allow_html=True)
-    
-    # Обработка выбора дня из URL
-    query_params = st.query_params
-    if 'selected_day' in query_params:
         try:
-            selected_date = datetime.date.fromisoformat(query_params['selected_day'])
-            if start_date <= selected_date <= end_date:
-                return selected_date
-        except:
-            pass
+            # Пытаемся использовать стандартный authenticator
+            name, authentication_status, username = authenticator.login(
+                fields={'form_name': 'Вход', 
+                       'username': 'Логин', 
+                       'password': 'Пароль',
+                       'login': 'Войти'}
+            )
+            
+            if authentication_status:
+                st.session_state["authentication_status"] = True
+                st.session_state["username"] = username
+                st.session_state["name"] = name
+                st.rerun()
+        except Exception as e:
+            # Резервный метод входа
+            with st.form(key="manual_login"):
+                manual_username = st.text_input("Логин")
+                manual_password = st.text_input("Пароль", type="password")
+                login_submitted = st.form_submit_button("Войти", type="primary", use_container_width=True)
+                
+                if login_submitted:
+                    if manual_username in config["credentials"]["usernames"]:
+                        user_info = config["credentials"]["usernames"][manual_username]
+                        st.session_state["authentication_status"] = True
+                        st.session_state["username"] = manual_username
+                        st.session_state["name"] = user_info["name"]
+                        st.rerun()
+                    else:
+                        st.error("❌ Неверный логин или пароль")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
     
-    return selected_day
+    with auth_col2:
+        if show_registration_form():
+            st.session_state.registration_success = True
+            st.rerun()
+    
+    st.stop()
 
+# Если регистрация успешна, просим войти
+if st.session_state.registration_success:
+    st.success("✅ Регистрация успешна! Теперь войдите в систему.")
+    st.session_state.registration_success = False
+    st.stop()
 
+# Проверяем, что пользователь действительно аутентифицирован
+username = st.session_state.get("username")
+if not username:
+    st.warning("🔐 Пожалуйста, войдите в систему снова")
+    st.stop()
+
+# ================== ОСНОВНОЙ КОНТЕНТ (после аутентификации) ==================
+
+# Основной заголовок
 st.markdown("<h1>💰 Финансовый Планнер</h1>", unsafe_allow_html=True)
 st.markdown(
     "<div class='subtitle'>Контроль бюджета, ежедневные траты и понятная аналитика.</div>",
     unsafe_allow_html=True,
 )
 
-registration_success = False
-
-# Проверяем запомненного пользователя
-if st.session_state.login_remember and st.session_state.login_username:
-    try:
-        # Пытаемся автоматически войти
-        authenticator.login('auto_login', 'main')
-        if st.session_state.get("authentication_status"):
-            username = st.session_state.login_username
-            st.session_state["username"] = username
-            st.session_state["authentication_status"] = True
-            st.session_state["name"] = config["credentials"]["usernames"][username]["name"]
-    except:
-        pass
-
-if st.session_state.get("authentication_status") is not True:
-    auth_tabs = st.tabs(["🔐 Вход", "📝 Регистрация"])
-    with auth_tabs[0]:
-        name, authentication_status, username = authenticator.login("Вход", "main")
-        if authentication_status:
-            st.session_state.login_username = username
-            st.session_state.login_remember = True
-        if authentication_status is False:
-            st.error("❌ Неверный логин или пароль")
-        if authentication_status is None:
-            st.info("Введите логин и пароль")
-
-    with auth_tabs[1]:
-        registration_success = show_registration_form()
-
-    if authentication_status is False:
-        st.stop()
-
-    if authentication_status is None and not registration_success:
-        st.warning("🔐 Пожалуйста, войдите или зарегистрируйтесь")
-        st.stop()
-
-    if registration_success:
-        st.rerun()
-
-username = st.session_state.get("username")
-if not username:
-    st.warning("🔐 Пожалуйста, войдите в систему снова")
-    st.stop()
-
+# Загрузка данных пользователя
 user_manager = UserDataManager(username)
 user_key = f"user_{username}"
 
@@ -943,6 +946,7 @@ elif st.session_state.get("current_user") != username:
 
 user_data = st.session_state[user_key]
 
+# Шапка пользователя
 user_cols = st.columns([3, 1])
 with user_cols[0]:
     user_info = config["credentials"]["usernames"].get(username, {})
@@ -953,8 +957,12 @@ with user_cols[0]:
         unsafe_allow_html=True,
     )
 with user_cols[1]:
-    authenticator.logout("Выйти", "main")
+    if st.button("Выйти", type="primary", use_container_width=True, key="logout_btn"):
+        authenticator.logout("Выйти", "main")
+        st.session_state.clear()
+        st.rerun()
 
+# Период расчета
 st.markdown("<div class='section-card'>", unsafe_allow_html=True)
 st.markdown("<div class='section-title'>📅 Период расчета</div>", unsafe_allow_html=True)
 period_cols = st.columns([1.2, 1.2, 0.8])
@@ -982,30 +990,43 @@ if end_date != saved_end:
 
 st.markdown("</div>", unsafe_allow_html=True)
 
+# Доходы и расходы
 income_expense_cols = st.columns(2)
 
 with income_expense_cols[0]:
     st.markdown("<div class='section-card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>💸 Доходы</div>", unsafe_allow_html=True)
     total_income = 0.0
+    
     for i, income in enumerate(user_data["incomes"]):
         with st.container():
-            row = st.columns([2.2, 1, 1, 0.4])
-            with row[0]:
+            # Улучшенная строка с увеличенными полями для категорий
+            st.markdown("<div class='income-expense-row'>", unsafe_allow_html=True)
+            
+            col1, col2, col3, col4 = st.columns([2.5, 1.8, 2.5, 0.4])
+            
+            with col1:
                 new_name = st.text_input(
                     "Название дохода",
                     value=income["name"],
                     key=f"income_name_{username}_{i}",
+                    label_visibility="collapsed",
+                    placeholder="Название"
                 )
-            with row[1]:
+            
+            with col2:
                 new_value = st.number_input(
                     "Сумма",
                     value=float(income["value"]),
                     step=1000.0,
-                    format="%.0f",
+                    format="%d",
                     key=f"income_value_{username}_{i}",
+                    label_visibility="collapsed",
+                    placeholder="Сумма"
                 )
-            with row[2]:
+            
+            with col3:
+                # Улучшенный selectbox с расширенной шириной
                 new_category = st.selectbox(
                     "Категория",
                     user_data["categories"],
@@ -1013,14 +1034,20 @@ with income_expense_cols[0]:
                     if income["category"] in user_data["categories"]
                     else 0,
                     key=f"income_cat_{username}_{i}",
+                    label_visibility="collapsed",
+                    help="Выберите категорию дохода"
                 )
-            with row[3]:
+            
+            with col4:
                 if len(user_data["incomes"]) > 1:
                     if st.button("🗑", key=f"income_remove_{username}_{i}"):
                         user_data["incomes"].pop(i)
                         user_manager.save(user_data)
                         st.rerun()
 
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Сохранение изменений
             if new_name != income["name"]:
                 user_data["incomes"][i]["name"] = new_name
                 user_manager.save(user_data)
@@ -1033,38 +1060,53 @@ with income_expense_cols[0]:
 
         total_income += user_data["incomes"][i]["value"] or 0
 
-    add_col, total_col = st.columns([0.7, 0.3])
+    # Кнопка добавления и итог
+    add_col, total_col = st.columns([0.6, 0.4])
     with add_col:
-        if st.button("+ Добавить доход", use_container_width=True, key=f"add_income_{username}"):
+        if st.button("+ Добавить доход", use_container_width=True, key=f"add_income_{username}", 
+                    type="secondary"):
             user_data["incomes"].append({"name": "", "value": 0.0, "category": user_data["categories"][0]})
             user_manager.save(user_data)
             st.rerun()
     with total_col:
-        st.metric("Итого", f"{format_currency(total_income)} ₽")
+        st.metric("Итого", f"{format_currency(total_income)} ₽", label_visibility="collapsed")
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
 with income_expense_cols[1]:
     st.markdown("<div class='section-card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>🧾 Расходы</div>", unsafe_allow_html=True)
     total_expenses = 0.0
+    
     for i, expense in enumerate(user_data["expenses"]):
         with st.container():
-            row = st.columns([2.2, 1, 1, 0.4])
-            with row[0]:
+            # Улучшенная строка с увеличенными полями для категорий
+            st.markdown("<div class='income-expense-row'>", unsafe_allow_html=True)
+            
+            col1, col2, col3, col4 = st.columns([2.5, 1.8, 2.5, 0.4])
+            
+            with col1:
                 new_name = st.text_input(
                     "Название расхода",
                     value=expense["name"],
                     key=f"expense_name_{username}_{i}",
+                    label_visibility="collapsed",
+                    placeholder="Название"
                 )
-            with row[1]:
+            
+            with col2:
                 new_value = st.number_input(
                     "Сумма",
                     value=float(expense["value"]),
                     step=500.0,
-                    format="%.0f",
+                    format="%d",
                     key=f"expense_value_{username}_{i}",
+                    label_visibility="collapsed",
+                    placeholder="Сумма"
                 )
-            with row[2]:
+            
+            with col3:
+                # Улучшенный selectbox с расширенной шириной
                 new_category = st.selectbox(
                     "Категория",
                     user_data["expense_categories"],
@@ -1072,14 +1114,20 @@ with income_expense_cols[1]:
                     if expense["category"] in user_data["expense_categories"]
                     else 0,
                     key=f"expense_cat_{username}_{i}",
+                    label_visibility="collapsed",
+                    help="Выберите категорию расхода"
                 )
-            with row[3]:
+            
+            with col4:
                 if len(user_data["expenses"]) > 1:
                     if st.button("🗑", key=f"expense_remove_{username}_{i}"):
                         user_data["expenses"].pop(i)
                         user_manager.save(user_data)
                         st.rerun()
 
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Сохранение изменений
             if new_name != expense["name"]:
                 user_data["expenses"][i]["name"] = new_name
                 user_manager.save(user_data)
@@ -1092,18 +1140,22 @@ with income_expense_cols[1]:
 
         total_expenses += user_data["expenses"][i]["value"] or 0
 
-    add_col, total_col = st.columns([0.7, 0.3])
+    # Кнопка добавления и итог
+    add_col, total_col = st.columns([0.6, 0.4])
     with add_col:
-        if st.button("+ Добавить расход", use_container_width=True, key=f"add_expense_{username}"):
+        if st.button("+ Добавить расход", use_container_width=True, key=f"add_expense_{username}", 
+                    type="secondary"):
             user_data["expenses"].append(
                 {"name": "", "value": 0.0, "category": user_data["expense_categories"][0]}
             )
             user_manager.save(user_data)
             st.rerun()
     with total_col:
-        st.metric("Итого", f"{format_currency(total_expenses)} ₽")
+        st.metric("Итого", f"{format_currency(total_expenses)} ₽", label_visibility="collapsed")
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
+# Финансовый обзор
 balance_after_expenses = total_income - total_expenses
 
 st.markdown("<div class='section-card'>", unsafe_allow_html=True)
@@ -1124,6 +1176,7 @@ if balance_after_expenses < 0:
 
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
+# Накопления
 savings_cols = st.columns([2, 1])
 with savings_cols[0]:
     savings_percentage = st.slider(
@@ -1165,58 +1218,124 @@ st.markdown(
 )
 st.markdown("</div>", unsafe_allow_html=True)
 
-
-# НОВЫЙ БЛОК: КАЛЕНДАРЬ И ЕЖЕДНЕВНЫЕ ТРАТЫ
+# КАЛЕНДАРЬ И ЕЖЕДНЕВНЫЕ ТРАТЫ
 st.markdown("<div class='section-card'>", unsafe_allow_html=True)
 st.markdown("<div class='section-title'>📅 Контроль ежедневных расходов</div>", unsafe_allow_html=True)
 
-period_dates = [start_date + datetime.timedelta(days=i) for i in range(days_in_period)]
+# Улучшенный выбор даты
+selected_day = render_date_picker(start_date, end_date, st.session_state.selected_day, user_data, daily_budget)
 
-# Вычисляем бюджет для каждого дня с учётом переноса
-daily_budgets = {}
-rollover = 0.0
-for day in period_dates:
-    day_key = day.isoformat()
-    day_spent = sum(item["amount"] for item in user_data["daily_spends"].get(day_key, []))
-    day_budget = daily_budget + rollover
-    daily_budgets[day_key] = day_budget
-    day_balance = day_budget - day_spent
-    rollover = max(day_balance, 0)  # Переносим только положительный остаток
-
-# Определяем выбранный день
-selected_day = st.session_state.get("selected_day", start_date)
-if selected_day not in period_dates:
-    selected_day = start_date
-
-# Компактный календарь
-st.markdown("### Календарь периода")
-selected_day = render_compact_calendar(start_date, end_date, selected_day, daily_budgets, user_data)
-
-# Сохраняем выбранный день в сессии
+# Обновляем выбранный день
 st.session_state.selected_day = selected_day
-
 selected_key = selected_day.isoformat()
 
-# Статистика дня
+# Форма добавления траты
+st.markdown("### Добавить трату")
+
+if selected_key not in user_data["daily_spends"]:
+    user_data["daily_spends"][selected_key] = []
+
+# Форма ввода
+input_cols = st.columns([2, 1, 1])
+with input_cols[0]:
+    spend_desc = st.text_input("Название расхода", key=f"spend_desc_{selected_key}", 
+                              placeholder="На что потратили?")
+with input_cols[1]:
+    spend_amount = st.number_input("Сумма", min_value=0.0, step=50.0, format="%d", 
+                                   key=f"spend_amount_{selected_key}", value=0.0,
+                                   placeholder="₽")
+with input_cols[2]:
+    st.markdown("<div style='height: 44px; display: flex; align-items: end; gap: 0.5rem;'>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        add_clicked = st.button("➕ Добавить", key=f"add_spend_{selected_key}", 
+                               use_container_width=True, type="primary")
+    with col2:
+        remove_clicked = st.button("➖ Удалить", key=f"remove_spend_{selected_key}", 
+                                  use_container_width=True, type="secondary")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+if add_clicked:
+    if spend_desc and spend_amount > 0:
+        user_data["daily_spends"][selected_key].append(
+            {"desc": spend_desc, "amount": spend_amount, "time": dt.now().strftime("%H:%M")}
+        )
+        user_manager.save(user_data)
+        st.session_state.expense_page = 0
+        st.rerun()
+    else:
+        st.warning("Введите название и сумму расхода")
+
+# Список трат за день
+st.markdown("### Траты за день")
+
+spends_today = user_data["daily_spends"].get(selected_key, [])
+
+if spends_today:
+    # Пагинация
+    items_per_page = 10
+    total_pages = max(1, (len(spends_today) + items_per_page - 1) // items_per_page)
+    current_page = st.session_state.expense_page
+    start_idx = current_page * items_per_page
+    end_idx = min((current_page + 1) * items_per_page, len(spends_today))
+    
+    # Отображение трат
+    for idx in range(start_idx, end_idx):
+        spend = spends_today[idx]
+        col1, col2, col3 = st.columns([3, 1, 1])
+        
+        with col1:
+            st.markdown(f"**{spend['desc']}**")
+        
+        with col2:
+            st.markdown(f"**{format_currency(spend['amount'])} ₽**")
+        
+        with col3:
+            if st.button("🗑", key=f"delete_{selected_key}_{idx}"):
+                user_data["daily_spends"][selected_key].pop(idx)
+                user_manager.save(user_data)
+                st.rerun()
+    
+    # Пагинационные кнопки
+    if total_pages > 1:
+        pag_cols = st.columns([1, 2, 1])
+        with pag_cols[0]:
+            if current_page > 0:
+                if st.button("◀️ Назад", key=f"prev_page_{selected_key}"):
+                    st.session_state.expense_page = current_page - 1
+                    st.rerun()
+        with pag_cols[1]:
+            st.markdown(f'<div style="text-align: center; padding: 0.5rem;">Страница {current_page + 1} из {total_pages}</div>', 
+                       unsafe_allow_html=True)
+        with pag_cols[2]:
+            if current_page < total_pages - 1:
+                if st.button("Вперёд ▶️", key=f"next_page_{selected_key}"):
+                    st.session_state.expense_page = current_page + 1
+                    st.rerun()
+else:
+    st.info("На этот день нет трат. Добавьте первую трату выше.")
+
+# Статистика дня (ПОСЛЕ списка трат)
+st.markdown("### Статистика дня")
+
+# Вычисляем статистику для выбранного дня
 rollover = 0.0
 selected_budget = daily_budget
 selected_spent = 0
-for day in period_dates:
+
+for i in range(days_in_period):
+    day = start_date + datetime.timedelta(days=i)
     day_key = day.isoformat()
     day_spent = sum(item["amount"] for item in user_data["daily_spends"].get(day_key, []))
     day_budget = daily_budget + rollover
-    day_balance = day_budget - day_spent
     
     if day == selected_day:
         selected_budget = day_budget
         selected_spent = day_spent
-        selected_balance = day_balance
+        selected_balance = day_budget - day_spent
         break
     
-    rollover = max(day_balance, 0)
-
-# Отображение статистики дня
-st.markdown(f"### {selected_day.strftime('%d %B %Y')}")
+    rollover = max(day_budget - day_spent, 0)
 
 # Прогресс-бар
 progress_percent = min((selected_spent / selected_budget * 100) if selected_budget > 0 else 0, 100)
@@ -1237,177 +1356,32 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Статистика дня
-st.markdown('<div class="day-stats">', unsafe_allow_html=True)
+# Три метрики
+stats_cols = st.columns(3)
 
-st.markdown(
-    f"""
-    <div class="stat-item">
-        <div class="stat-label">Бюджет дня</div>
-        <div class="stat-value">{format_currency(selected_budget)} ₽</div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+with stats_cols[0]:
+    st.metric("Бюджет дня", f"{format_currency(selected_budget)} ₽")
 
-st.markdown(
-    f"""
-    <div class="stat-item">
-        <div class="stat-label">Потрачено</div>
-        <div class="stat-value">{format_currency(selected_spent)} ₽</div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+with stats_cols[1]:
+    st.metric("Потрачено", f"{format_currency(selected_spent)} ₽")
 
-balance_class = "positive" if selected_balance >= 0 else "negative"
-st.markdown(
-    f"""
-    <div class="stat-item">
-        <div class="stat-label">Остаток на завтра</div>
-        <div class="stat-value {balance_class}">{format_currency(selected_balance)} ₽</div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Список трат за день
-st.markdown("### Траты за день")
-
-if selected_key not in user_data["daily_spends"]:
-    user_data["daily_spends"][selected_key] = []
-
-spends_today = user_data["daily_spends"].get(selected_key, [])
-
-# Пагинация
-items_per_page = 10
-if 'expense_page' not in st.session_state:
-    st.session_state.expense_page = 0
-
-total_pages = max(1, (len(spends_today) + items_per_page - 1) // items_per_page)
-current_page = st.session_state.expense_page
-start_idx = current_page * items_per_page
-end_idx = min((current_page + 1) * items_per_page, len(spends_today))
-
-# Отображение трат с пагинацией
-if spends_today:
-    st.markdown('<div class="expense-list">', unsafe_allow_html=True)
-    
-    for idx in range(start_idx, end_idx):
-        spend = spends_today[idx]
-        st.markdown(
-            f"""
-            <div class="expense-item">
-                <div class="expense-item-info">
-                    <span>💸 {spend['desc']}</span>
-                    <span class="expense-item-amount">{format_currency(spend['amount'])} ₽</span>
-                    <span class="expense-item-time">{spend.get('time', '')}</span>
-                </div>
-                <div class="expense-item-actions">
-                    <button class="delete-btn" onclick="deleteExpense({idx})">-</button>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Пагинация
-    if total_pages > 1:
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col1:
-            if current_page > 0:
-                if st.button("◀️ Назад", key=f"prev_page_{selected_key}"):
-                    st.session_state.expense_page = current_page - 1
-                    st.rerun()
-        with col2:
-            st.markdown(f'<div style="text-align: center; padding: 0.5rem;">Страница {current_page + 1} из {total_pages}</div>', unsafe_allow_html=True)
-        with col3:
-            if current_page < total_pages - 1:
-                if st.button("Вперёд ▶️", key=f"next_page_{selected_key}"):
-                    st.session_state.expense_page = current_page + 1
-                    st.rerun()
-else:
-    st.info("На этот день нет трат. Добавьте первую трату ниже.")
-
-# Форма добавления траты
-st.markdown("### Добавить трату")
-
-input_cols = st.columns([2, 1, 1])
-with input_cols[0]:
-    spend_desc = st.text_input("Название расхода", key=f"spend_desc_{selected_key}")
-with input_cols[1]:
-    spend_amount = st.number_input("Сумма", min_value=0.0, step=50.0, format="%.0f", 
-                                   key=f"spend_amount_{selected_key}", value=0.0)
-with input_cols[2]:
-    st.markdown("<div style='height: 44px; display: flex; align-items: end;'>", unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        add_clicked = st.button("➕", key=f"add_spend_{selected_key}", use_container_width=True)
-    with col2:
-        remove_clicked = st.button("➖", key=f"remove_spend_{selected_key}", use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-if add_clicked:
-    if spend_desc and spend_amount > 0:
-        user_data["daily_spends"][selected_key].append(
-            {"desc": spend_desc, "amount": spend_amount, "time": dt.now().strftime("%H:%M")}
-        )
-        user_manager.save(user_data)
-        st.session_state.expense_page = 0  # Сбрасываем на первую страницу
-        st.rerun()
+with stats_cols[2]:
+    balance_color = "normal"
+    if selected_balance >= 0:
+        delta = f"+{format_currency(selected_balance)} ₽"
     else:
-        st.warning("Введите название и сумму расхода")
-
-if remove_clicked:
-    if user_data["daily_spends"][selected_key]:
-        user_data["daily_spends"][selected_key].pop()
-        user_manager.save(user_data)
-        st.session_state.expense_page = 0  # Сбрасываем на первую страницу
-        st.rerun()
-    else:
-        st.info("Нет расходов для удаления")
-
-# JavaScript для удаления трат
-st.markdown("""
-<script>
-function deleteExpense(index) {
-    if (confirm("Удалить эту трату?")) {
-        const url = new URL(window.location);
-        url.searchParams.set('delete_expense', index);
-        url.searchParams.set('selected_day', '%s');
-        window.location.href = url.toString();
-    }
-}
-</script>
-""" % selected_key, unsafe_allow_html=True)
-
-# Обработка удаления через URL
-query_params = st.query_params
-if 'delete_expense' in query_params and 'selected_day' in query_params:
-    try:
-        delete_idx = int(query_params['delete_expense'])
-        delete_day = query_params['selected_day']
-        if delete_day in user_data["daily_spends"] and 0 <= delete_idx < len(user_data["daily_spends"][delete_day]):
-            user_data["daily_spends"][delete_day].pop(delete_idx)
-            user_manager.save(user_data)
-            # Очищаем параметры
-            st.query_params.clear()
-            st.rerun()
-    except:
-        pass
+        delta = f"{format_currency(selected_balance)} ₽"
+    
+    st.metric("Остаток на завтра", f"{format_currency(selected_balance)} ₽", delta=delta)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# БЛОК ЭКСПОРТА
+# ЭКСПОРТ ШАБЛОНА
 st.markdown("<div class='section-card'>", unsafe_allow_html=True)
 st.markdown("<div class='section-title'>📤 Экспорт шаблона</div>", unsafe_allow_html=True)
 
-# Создание Excel файла
-excel_data = create_excel_template(
+# Создаем текстовый шаблон (без openpyxl)
+export_data = create_simple_export(
     user_data=user_data,
     username=username,
     user_info=user_info,
@@ -1420,15 +1394,14 @@ excel_data = create_excel_template(
     days_in_period=days_in_period
 )
 
-# Кнопка скачивания
 st.download_button(
-    label="📥 Скачать шаблон за период (Excel)",
-    data=excel_data,
-    file_name=f"финансовый_шаблон_{username}_{start_date.strftime('%Y-%m-%d')}.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    label="📥 Скачать шаблон за период (TXT)",
+    data=export_data,
+    file_name=f"финансовый_шаблон_{username}_{start_date.strftime('%Y-%m-%d')}.txt",
+    mime="text/plain",
     use_container_width=True,
     type="primary",
-    key="download_excel"
+    key="download_template"
 )
 
 st.markdown(
@@ -1436,11 +1409,11 @@ st.markdown(
     <div style="margin-top: 1rem; padding: 1rem; background: var(--surface-light); border-radius: var(--radius-md); border: 1px solid var(--border);">
         <div style="font-weight: 600; margin-bottom: 0.5rem;">Что входит в шаблон:</div>
         <div style="color: var(--text-secondary); font-size: 0.9rem;">
-            <div>• 📊 Дашборд с основными показателями</div>
+            <div>• 📊 Основные финансовые показатели</div>
             <div>• 💰 Свод постоянных доходов и расходов</div>
             <div>• 📅 Таблица для ручного ввода ежедневных трат</div>
-            <div>• 🧮 Автоматические формулы для расчёта остатков</div>
             <div>• 💡 Подсказки по использованию</div>
+            <div>• 🧮 Готовый формат для заполнения в Excel или Google Sheets</div>
         </div>
     </div>
     """,
@@ -1449,11 +1422,12 @@ st.markdown(
 
 st.markdown("</div>", unsafe_allow_html=True)
 
+# Футер
 st.markdown(
     f"""
     <div style="text-align:center; color: var(--text-secondary); font-size: 0.9rem; padding: 1.5rem 0;">
         <div>Вы вошли как: {username} • Все данные сохраняются автоматически</div>
-        <div>Финансовый Планнер • 2024</div>
+        <div>Финансовый Планнер • {datetime.date.today().year}</div>
     </div>
     """,
     unsafe_allow_html=True,
