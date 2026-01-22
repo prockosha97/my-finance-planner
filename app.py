@@ -698,7 +698,7 @@ class UserDataManager:
             "expenses": [{"name": "Квартира", "value": 15000.0, "category": "Жилье"}],
             "daily_spends": {},
             "savings_percentage": 15,
-            "categories": ["Основной", "Дополнительный", "Инвестиции", "Подарки", "Фриланс"],
+            "categories": ["Основной", "Доп", "Инвестиции", "Подарки", "Фриланс"],
             "expense_categories": [
                 "Жилье",
                 "Еда",
