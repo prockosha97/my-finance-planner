@@ -1019,7 +1019,7 @@ with income_expense_cols[0]:
                     "Сумма",
                     value=float(income["value"]),
                     step=1000.0,
-                    format="%d",
+                    format="%.0f",
                     key=f"income_value_{username}_{i}",
                     label_visibility="collapsed",
                     placeholder="Сумма"
@@ -1099,7 +1099,7 @@ with income_expense_cols[1]:
                     "Сумма",
                     value=float(expense["value"]),
                     step=500.0,
-                    format="%d",
+                    format="%.0f",
                     key=f"expense_value_{username}_{i}",
                     label_visibility="collapsed",
                     placeholder="Сумма"
@@ -1241,7 +1241,7 @@ with input_cols[0]:
     spend_desc = st.text_input("Название расхода", key=f"spend_desc_{selected_key}", 
                               placeholder="На что потратили?")
 with input_cols[1]:
-    spend_amount = st.number_input("Сумма", min_value=0.0, step=50.0, format="%d", 
+    spend_amount = st.number_input("Сумма", min_value=0.0, step=50.0, format="%.0f", 
                                    key=f"spend_amount_{selected_key}", value=0.0,
                                    placeholder="₽")
 with input_cols[2]:
