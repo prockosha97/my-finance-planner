@@ -254,6 +254,16 @@ div[data-baseweb="select"] [data-testid="stSelectboxLabel"] {
     color: var(--secondary);
 }
 
+.date-period-info {
+    background: var(--surface-light);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
 /* Список трат */
 .expense-list {
     max-height: 300px;
@@ -363,13 +373,20 @@ div[data-baseweb="select"] [data-testid="stSelectboxLabel"] {
     background: linear-gradient(90deg, var(--danger), #F87171);
 }
 
-/* Форма ввода трат */
+/* Форма ввода трат - ИСПРАВЛЕНА для выравнивания */
 .expense-form-row {
     display: flex;
     gap: 0.75rem;
-    align-items: end;
+    align-items: flex-end;
     flex-wrap: wrap;
     margin-bottom: 1rem;
+}
+
+.expense-form-buttons {
+    display: flex;
+    gap: 0.5rem;
+    height: 44px;
+    align-items: flex-end;
 }
 
 /* Улучшенные колонки для доходов/расходов */
@@ -484,6 +501,15 @@ div[data-baseweb="select"] [data-testid="stSelectboxLabel"] {
         gap: 0.5rem;
     }
     
+    .expense-form-buttons {
+        width: 100%;
+        justify-content: stretch;
+    }
+    
+    .expense-form-buttons .stButton {
+        flex: 1;
+    }
+    
     .day-stats {
         grid-template-columns: 1fr;
         gap: 0.5rem;
@@ -554,6 +580,18 @@ div[data-baseweb="select"] [data-testid="stSelectboxLabel"] {
     text-align: center;
     margin-bottom: 1.5rem;
     color: var(--text-primary);
+}
+
+/* Сохраненный логин */
+.saved-login {
+    background-color: var(--surface-light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 """
 
@@ -639,6 +677,15 @@ class UserDataManager:
             yaml.dump(config, f, default_flow_style=False)
         return True
 
+
+# Функция для сохранения/загрузки последнего логина
+def get_last_username():
+    """Получает последний сохраненный логин из session_state"""
+    return st.session_state.get("last_username", "")
+
+def save_last_username(username):
+    """Сохраняет логин в session_state"""
+    st.session_state.last_username = username
 
 # Создаем конфиг если его нет
 def ensure_config_exists():
@@ -813,6 +860,12 @@ def render_date_picker(start_date, end_date, selected_day, user_data, daily_budg
     st.markdown("<div class='date-picker-card'>", unsafe_allow_html=True)
     st.markdown("### Выберите день для управления расходами")
     
+    # Информация о периоде
+    st.markdown(
+        f"<div class='date-period-info'>📅 Доступный период: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}</div>",
+        unsafe_allow_html=True
+    )
+    
     # Используем st.date_input для выбора даты
     new_date = st.date_input(
         "Дата",
@@ -863,6 +916,9 @@ if st.session_state.get("authentication_status") is None:
     st.markdown("<h1 style='text-align: center; margin-top: 2rem;'>💰 Финансовый Планнер</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: var(--text-secondary); margin-bottom: 2rem;'>Контроль бюджета, ежедневные траты и понятная аналитика.</p>", unsafe_allow_html=True)
     
+    # Получаем последний сохраненный логин
+    last_username = get_last_username()
+    
     # Создаем две колонки для входа и регистрации
     auth_col1, auth_col2 = st.columns(2)
     
@@ -870,16 +926,28 @@ if st.session_state.get("authentication_status") is None:
         st.markdown("<div class='auth-card'>", unsafe_allow_html=True)
         st.markdown("<h2 class='auth-title'>🔐 Вход</h2>", unsafe_allow_html=True)
         
+        # Показываем сохраненный логин, если есть
+        if last_username:
+            st.markdown(
+                f"<div class='saved-login'>"
+                f"📱 Последний вход: <strong>{last_username}</strong>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+        
         try:
             # Пытаемся использовать стандартный authenticator
             name, authentication_status, username = authenticator.login(
                 fields={'form_name': 'Вход', 
                        'username': 'Логин', 
                        'password': 'Пароль',
-                       'login': 'Войти'}
+                       'login': 'Войти'},
+                location='main'
             )
             
             if authentication_status:
+                # Сохраняем логин
+                save_last_username(username)
                 st.session_state["authentication_status"] = True
                 st.session_state["username"] = username
                 st.session_state["name"] = name
@@ -887,13 +955,17 @@ if st.session_state.get("authentication_status") is None:
         except Exception as e:
             # Резервный метод входа
             with st.form(key="manual_login"):
-                manual_username = st.text_input("Логин")
+                # Автозаполнение последнего логина
+                default_username = last_username if last_username else ""
+                manual_username = st.text_input("Логин", value=default_username)
                 manual_password = st.text_input("Пароль", type="password")
                 login_submitted = st.form_submit_button("Войти", type="primary", use_container_width=True)
                 
                 if login_submitted:
                     if manual_username in config["credentials"]["usernames"]:
                         user_info = config["credentials"]["usernames"][manual_username]
+                        # Сохраняем логин
+                        save_last_username(manual_username)
                         st.session_state["authentication_status"] = True
                         st.session_state["username"] = manual_username
                         st.session_state["name"] = user_info["name"]
@@ -1015,11 +1087,11 @@ with income_expense_cols[0]:
                 )
             
             with col2:
+                # ИСПРАВЛЕНО: убрано format="%d" для float
                 new_value = st.number_input(
                     "Сумма",
                     value=float(income["value"]),
                     step=1000.0,
-                    format="%.0f",
                     key=f"income_value_{username}_{i}",
                     label_visibility="collapsed",
                     placeholder="Сумма"
@@ -1027,12 +1099,14 @@ with income_expense_cols[0]:
             
             with col3:
                 # Улучшенный selectbox с расширенной шириной
+                current_index = 0
+                if income["category"] in user_data["categories"]:
+                    current_index = user_data["categories"].index(income["category"])
+                
                 new_category = st.selectbox(
                     "Категория",
                     user_data["categories"],
-                    index=user_data["categories"].index(income["category"])
-                    if income["category"] in user_data["categories"]
-                    else 0,
+                    index=current_index,
                     key=f"income_cat_{username}_{i}",
                     label_visibility="collapsed",
                     help="Выберите категорию дохода"
@@ -1047,14 +1121,10 @@ with income_expense_cols[0]:
 
             st.markdown("</div>", unsafe_allow_html=True)
 
-            # Сохранение изменений
-            if new_name != income["name"]:
+            # Сохранение изменений - ИСПРАВЛЕНО: категория сохраняется немедленно
+            if new_name != income["name"] or new_value != income["value"] or new_category != income["category"]:
                 user_data["incomes"][i]["name"] = new_name
-                user_manager.save(user_data)
-            if new_value != income["value"]:
                 user_data["incomes"][i]["value"] = new_value
-                user_manager.save(user_data)
-            if new_category != income["category"]:
                 user_data["incomes"][i]["category"] = new_category
                 user_manager.save(user_data)
 
@@ -1095,11 +1165,11 @@ with income_expense_cols[1]:
                 )
             
             with col2:
+                # ИСПРАВЛЕНО: убрано format="%d" для float
                 new_value = st.number_input(
                     "Сумма",
                     value=float(expense["value"]),
                     step=500.0,
-                    format="%.0f",
                     key=f"expense_value_{username}_{i}",
                     label_visibility="collapsed",
                     placeholder="Сумма"
@@ -1107,12 +1177,14 @@ with income_expense_cols[1]:
             
             with col3:
                 # Улучшенный selectbox с расширенной шириной
+                current_index = 0
+                if expense["category"] in user_data["expense_categories"]:
+                    current_index = user_data["expense_categories"].index(expense["category"])
+                
                 new_category = st.selectbox(
                     "Категория",
                     user_data["expense_categories"],
-                    index=user_data["expense_categories"].index(expense["category"])
-                    if expense["category"] in user_data["expense_categories"]
-                    else 0,
+                    index=current_index,
                     key=f"expense_cat_{username}_{i}",
                     label_visibility="collapsed",
                     help="Выберите категорию расхода"
@@ -1127,14 +1199,10 @@ with income_expense_cols[1]:
 
             st.markdown("</div>", unsafe_allow_html=True)
 
-            # Сохранение изменений
-            if new_name != expense["name"]:
+            # Сохранение изменений - ИСПРАВЛЕНО: категория сохраняется немедленно
+            if new_name != expense["name"] or new_value != expense["value"] or new_category != expense["category"]:
                 user_data["expenses"][i]["name"] = new_name
-                user_manager.save(user_data)
-            if new_value != expense["value"]:
                 user_data["expenses"][i]["value"] = new_value
-                user_manager.save(user_data)
-            if new_category != expense["category"]:
                 user_data["expenses"][i]["category"] = new_category
                 user_manager.save(user_data)
 
@@ -1235,36 +1303,48 @@ st.markdown("### Добавить трату")
 if selected_key not in user_data["daily_spends"]:
     user_data["daily_spends"][selected_key] = []
 
-# Форма ввода
-input_cols = st.columns([2, 1, 1])
-with input_cols[0]:
+# Форма ввода - ИСПРАВЛЕНО: кнопки выровнены
+st.markdown("<div class='expense-form-row'>", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns([2, 1, 1])
+
+with col1:
     spend_desc = st.text_input("Название расхода", key=f"spend_desc_{selected_key}", 
                               placeholder="На что потратили?")
-with input_cols[1]:
-    spend_amount = st.number_input("Сумма", min_value=0.0, step=50.0, format="%.0f", 
+
+with col2:
+    # ИСПРАВЛЕНО: убрано format="%d" для float
+    spend_amount = st.number_input("Сумма", min_value=0.0, step=50.0, 
                                    key=f"spend_amount_{selected_key}", value=0.0,
                                    placeholder="₽")
-with input_cols[2]:
-    st.markdown("<div style='height: 44px; display: flex; align-items: end; gap: 0.5rem;'>", unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        add_clicked = st.button("➕ Добавить", key=f"add_spend_{selected_key}", 
-                               use_container_width=True, type="primary")
-    with col2:
-        remove_clicked = st.button("➖ Удалить", key=f"remove_spend_{selected_key}", 
-                                  use_container_width=True, type="secondary")
+
+with col3:
+    # ИСПРАВЛЕНО: контейнер для выравнивания кнопок
+    st.markdown("<div class='expense-form-buttons'>", unsafe_allow_html=True)
+    
+    if st.button("➕ Добавить", key=f"add_spend_{selected_key}", 
+                 use_container_width=True, type="primary"):
+        if spend_desc and spend_amount > 0:
+            user_data["daily_spends"][selected_key].append(
+                {"desc": spend_desc, "amount": spend_amount, "time": dt.now().strftime("%H:%M")}
+            )
+            user_manager.save(user_data)
+            st.session_state.expense_page = 0
+            st.rerun()
+        else:
+            st.warning("Введите название и сумму расхода")
+    
+    if st.button("➖ Удалить", key=f"remove_spend_{selected_key}", 
+                 use_container_width=True, type="secondary"):
+        if user_data["daily_spends"][selected_key]:
+            user_data["daily_spends"][selected_key].pop()
+            user_manager.save(user_data)
+            st.session_state.expense_page = 0
+            st.rerun()
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
-if add_clicked:
-    if spend_desc and spend_amount > 0:
-        user_data["daily_spends"][selected_key].append(
-            {"desc": spend_desc, "amount": spend_amount, "time": dt.now().strftime("%H:%M")}
-        )
-        user_manager.save(user_data)
-        st.session_state.expense_page = 0
-        st.rerun()
-    else:
-        st.warning("Введите название и сумму расхода")
+st.markdown("</div>", unsafe_allow_html=True)
 
 # Список трат за день
 st.markdown("### Траты за день")
