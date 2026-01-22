@@ -928,7 +928,6 @@ def get_day_status(day_key, user_data, daily_budget, start_date, end_date):
 def render_date_picker(start_date, end_date, selected_day, user_data, daily_budget):
     """Рендерит компактный выбор даты с индикаторами"""
     
-    st.markdown("<div class='date-picker-card'>", unsafe_allow_html=True)
     st.markdown("### Выберите день для управления расходами")
     
     # Информация о периоде
@@ -1106,7 +1105,6 @@ with user_cols[1]:
         st.rerun()
 
 # Период расчета
-st.markdown("<div class='section-card'>", unsafe_allow_html=True)
 st.markdown("<div class='section-title'>📅 Период расчета</div>", unsafe_allow_html=True)
 period_cols = st.columns([1.2, 1.2, 0.8])
 with period_cols[0]:
@@ -1137,7 +1135,6 @@ st.markdown("</div>", unsafe_allow_html=True)
 income_expense_cols = st.columns(2)
 
 with income_expense_cols[0]:
-    st.markdown("<div class='section-card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>💸 Доходы</div>", unsafe_allow_html=True)
     total_income = 0.0
     
@@ -1215,7 +1212,6 @@ with income_expense_cols[0]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 with income_expense_cols[1]:
-    st.markdown("<div class='section-card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>🧾 Расходы</div>", unsafe_allow_html=True)
     total_expenses = 0.0
     
@@ -1297,7 +1293,6 @@ with income_expense_cols[1]:
 # Финансовый обзор
 balance_after_expenses = total_income - total_expenses
 
-st.markdown("<div class='section-card'>", unsafe_allow_html=True)
 st.markdown("<div class='section-title'>📊 Финансовый обзор</div>", unsafe_allow_html=True)
 metric_cols = st.columns(3)
 with metric_cols[0]:
@@ -1358,7 +1353,6 @@ st.markdown(
 st.markdown("</div>", unsafe_allow_html=True)
 
 # КАЛЕНДАРЬ И ЕЖЕДНЕВНЫЕ ТРАТЫ
-st.markdown("<div class='section-card'>", unsafe_allow_html=True)
 st.markdown("<div class='section-title'>📅 Контроль ежедневных расходов</div>", unsafe_allow_html=True)
 
 # Улучшенный выбор даты
@@ -1543,7 +1537,6 @@ with stats_cols[2]:
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ЭКСПОРТ ШАБЛОНА
-st.markdown("<div class='section-card'>", unsafe_allow_html=True)
 st.markdown("<div class='section-title'>📤 Экспорт шаблона</div>", unsafe_allow_html=True)
 
 # Создаем текстовый шаблон (без openpyxl)
