@@ -795,7 +795,6 @@ except Exception as exc:
 
 
 def show_registration_form():
-    st.markdown("<div class='auth-card'>", unsafe_allow_html=True)
     st.markdown("<h2 class='auth-title'>📝 Регистрация</h2>", unsafe_allow_html=True)
     
     with st.form(key="registration_form", clear_on_submit=True):
@@ -993,7 +992,6 @@ if st.session_state.get("authentication_status") is None:
     auth_col1, auth_col2 = st.columns(2)
     
     with auth_col1:
-        st.markdown("<div class='auth-card'>", unsafe_allow_html=True)
         st.markdown("<h2 class='auth-title'>🔐 Вход</h2>", unsafe_allow_html=True)
         
         # Показываем сохраненный логин, если есть
