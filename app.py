@@ -165,10 +165,12 @@ h3 {
     box-shadow: 0 0 0 2px var(--primary-soft) !important;
 }
 
-/* УЛУЧШЕННЫЕ ВЫПАДАЮЩИЕ СПИСКИ - РАСШИРЕННЫЕ ДЛЯ КАТЕГОРИЙ */
+/* УЛУЧШЕННЫЕ ВЫПАДАЮЩИЕ СПИСКИ - ФИКС ПОЗИЦИОНИРОВАНИЯ */
 div[data-baseweb="select"] {
     width: 100% !important;
     min-width: 180px !important;
+    position: relative !important;
+    z-index: 999 !important;
 }
 
 div[data-baseweb="select"] > div {
@@ -178,6 +180,8 @@ div[data-baseweb="select"] > div {
     color: var(--text-primary) !important;
     min-height: 44px !important;
     padding: 10px 12px !important;
+    position: relative !important;
+    z-index: 1000 !important;
 }
 
 div[data-baseweb="select"] > div:hover {
@@ -192,6 +196,12 @@ div[data-baseweb="select"] [role="listbox"] {
     overflow-y: auto !important;
     min-width: 250px !important;
     width: auto !important;
+    position: absolute !important;
+    z-index: 1001 !important;
+    top: 100% !important;
+    left: 0 !important;
+    margin-top: 2px !important;
+    box-shadow: var(--shadow-md) !important;
 }
 
 div[data-baseweb="select"] [role="option"] {
@@ -262,6 +272,19 @@ div[data-baseweb="select"] [data-testid="stSelectboxLabel"] {
     margin-top: 0.5rem;
     font-size: 0.9rem;
     color: var(--text-secondary);
+}
+
+/* Стили для неактивных дат в календаре */
+div[data-baseweb="calendar"] [aria-disabled="true"],
+div[data-baseweb="calendar"] button[disabled] {
+    color: var(--text-tertiary) !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+div[data-baseweb="calendar"] [aria-selected="true"] {
+    background-color: var(--primary) !important;
+    color: white !important;
 }
 
 /* Список трат */
@@ -389,6 +412,39 @@ div[data-baseweb="select"] [data-testid="stSelectboxLabel"] {
     align-items: flex-end;
 }
 
+/* Компактные кнопки + и - */
+.compact-button {
+    min-width: 44px !important;
+    max-width: 44px !important;
+    width: 44px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.2rem !important;
+}
+
+.compact-button.add {
+    background-color: var(--primary) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.compact-button.remove {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+}
+
+.compact-button.add:hover {
+    background-color: var(--primary-dark) !important;
+}
+
+.compact-button.remove:hover {
+    background-color: var(--surface-dark) !important;
+    border-color: var(--primary) !important;
+}
+
 /* Улучшенные колонки для доходов/расходов */
 .income-expense-row {
     display: flex;
@@ -474,6 +530,13 @@ div[data-baseweb="select"] [data-testid="stSelectboxLabel"] {
     div[data-baseweb="select"] [role="listbox"] {
         min-width: 100% !important;
         width: 100% !important;
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        max-height: 50vh !important;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
     }
     
     div[data-baseweb="select"] [role="option"] {
@@ -540,6 +603,14 @@ div[data-baseweb="select"] [data-testid="stSelectboxLabel"] {
     
     .income-expense-row > div {
         width: 100% !important;
+    }
+    
+    /* Компактные кнопки на мобильных */
+    .compact-button {
+        min-width: 50px !important;
+        max-width: 50px !important;
+        width: 50px !important;
+        height: 44px !important;
     }
 }
 
@@ -862,11 +933,11 @@ def render_date_picker(start_date, end_date, selected_day, user_data, daily_budg
     
     # Информация о периоде
     st.markdown(
-        f"<div class='date-period-info'>📅 Доступный период: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}</div>",
+        f"<div class='date-period-info'>📅 Доступный период: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')} (включая границы)</div>",
         unsafe_allow_html=True
     )
     
-    # Используем st.date_input для выбора даты
+    # Используем st.date_input для выбора даты с явным указанием min/max
     new_date = st.date_input(
         "Дата",
         value=selected_day,
@@ -1303,10 +1374,10 @@ st.markdown("### Добавить трату")
 if selected_key not in user_data["daily_spends"]:
     user_data["daily_spends"][selected_key] = []
 
-# Форма ввода - ИСПРАВЛЕНО: кнопки выровнены
+# Форма ввода - ИСПРАВЛЕНО: компактные кнопки + и -
 st.markdown("<div class='expense-form-row'>", unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([2, 1, 1])
+col1, col2, col3 = st.columns([2, 1, 0.5])
 
 with col1:
     spend_desc = st.text_input("Название расхода", key=f"spend_desc_{selected_key}", 
@@ -1319,28 +1390,43 @@ with col2:
                                    placeholder="₽")
 
 with col3:
-    # ИСПРАВЛЕНО: контейнер для выравнивания кнопок
+    # ИСПРАВЛЕНО: компактные кнопки + и -
     st.markdown("<div class='expense-form-buttons'>", unsafe_allow_html=True)
     
-    if st.button("➕ Добавить", key=f"add_spend_{selected_key}", 
-                 use_container_width=True, type="primary"):
-        if spend_desc and spend_amount > 0:
-            user_data["daily_spends"][selected_key].append(
-                {"desc": spend_desc, "amount": spend_amount, "time": dt.now().strftime("%H:%M")}
-            )
-            user_manager.save(user_data)
-            st.session_state.expense_page = 0
-            st.rerun()
-        else:
-            st.warning("Введите название и сумму расхода")
+    # Создаем кастомные компактные кнопки
+    button_col1, button_col2 = st.columns(2)
     
-    if st.button("➖ Удалить", key=f"remove_spend_{selected_key}", 
-                 use_container_width=True, type="secondary"):
-        if user_data["daily_spends"][selected_key]:
-            user_data["daily_spends"][selected_key].pop()
-            user_manager.save(user_data)
-            st.session_state.expense_page = 0
-            st.rerun()
+    with button_col1:
+        # Кнопка "+" (добавить)
+        if st.button(
+            "+", 
+            key=f"add_spend_{selected_key}", 
+            help="Добавить трату",
+            type="primary"
+        ):
+            if spend_desc and spend_amount > 0:
+                user_data["daily_spends"][selected_key].append(
+                    {"desc": spend_desc, "amount": spend_amount, "time": dt.now().strftime("%H:%M")}
+                )
+                user_manager.save(user_data)
+                st.session_state.expense_page = 0
+                st.rerun()
+            else:
+                st.warning("Введите название и сумму расхода")
+    
+    with button_col2:
+        # Кнопка "-" (удалить последнюю)
+        if st.button(
+            "-", 
+            key=f"remove_spend_{selected_key}", 
+            help="Удалить последнюю трату",
+            type="secondary"
+        ):
+            if user_data["daily_spends"][selected_key]:
+                user_data["daily_spends"][selected_key].pop()
+                user_manager.save(user_data)
+                st.session_state.expense_page = 0
+                st.rerun()
     
     st.markdown("</div>", unsafe_allow_html=True)
 
