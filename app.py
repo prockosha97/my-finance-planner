@@ -182,6 +182,10 @@ div[data-baseweb="select"] > div {
     padding: 10px 12px !important;
     position: relative !important;
     z-index: 1000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
 }
 
 div[data-baseweb="select"] > div:hover {
